@@ -37,6 +37,7 @@ print_header() {
 
 print_test() {
     echo -e "\n${CYAN}▶ TEST: $1${NC}"
+    sleep 1
 }
 
 print_success() {
@@ -47,10 +48,16 @@ print_error() {
     echo -e "${RED}✗ FAIL: $1${NC}"
 }
 
+# Delay after test result for readability
+result_delay() {
+    sleep 1.5
+}
+
 print_response() {
     echo -e "${YELLOW}Response:${NC}"
     echo "$1" | jq '.' 2>/dev/null || echo "$1"
 }
+
 
 # Check if jq is installed
 if ! command -v jq &> /dev/null; then
@@ -96,6 +103,7 @@ else
     print_response "$RESPONSE"
     exit 1
 fi
+result_delay
 
 # =============================================================================
 # Test 2: Health Check - Readiness
@@ -112,6 +120,7 @@ else
     print_response "$RESPONSE"
     exit 1
 fi
+result_delay
 
 # =============================================================================
 # Test 3: List All Token Prices
@@ -136,6 +145,7 @@ else
     print_error "No token prices returned"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Test 4: List with Pagination
@@ -158,6 +168,7 @@ if [ "$PAGE_SIZE" = "5" ]; then
 else
     print_error "Pagination issue - expected 5 items, got $PAGE_SIZE"
 fi
+result_delay
 
 # =============================================================================
 # Test 5: Filter by Currency
@@ -181,6 +192,7 @@ else
     print_error "Filter issue - expected ETH"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Test 6: Get Token Price by Currency
@@ -204,6 +216,7 @@ else
     print_error "Failed to get ETH price"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Test 7: Calculate Exchange Rate (Frontend Swap Feature)
@@ -233,6 +246,7 @@ else
     print_error "Failed to calculate exchange rate"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Test 8: Calculate Exchange Rate - BTC to ETH
@@ -255,6 +269,7 @@ else
     print_error "Failed to calculate WBTC to ETH rate"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Test 9: Create New Token Price
@@ -297,6 +312,7 @@ else
         print_response "$RESPONSE"
     fi
 fi
+result_delay
 
 # =============================================================================
 # Test 10: Update Token Price
@@ -325,6 +341,7 @@ if [ -n "$CREATED_ID" ] && [ "$CREATED_ID" != "null" ]; then
         print_error "Failed to update token price"
         print_response "$RESPONSE"
     fi
+    result_delay
 fi
 
 # =============================================================================
@@ -346,6 +363,7 @@ if [ -n "$CREATED_ID" ] && [ "$CREATED_ID" != "null" ]; then
     else
         print_error "Failed to delete - HTTP $HTTP_CODE"
     fi
+    result_delay
 fi
 
 # =============================================================================
@@ -361,6 +379,7 @@ if [ -n "$CORRELATION_ID" ]; then
 else
     print_error "Correlation ID header missing"
 fi
+result_delay
 
 # =============================================================================
 # Test 13: Error Handling - Not Found
@@ -382,6 +401,7 @@ else
     print_error "Unexpected response for non-existent currency"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Test 14: Error Handling - Invalid Input
@@ -407,6 +427,7 @@ else
     print_error "Missing validation for negative price"
     print_response "$RESPONSE"
 fi
+result_delay
 
 # =============================================================================
 # Summary
