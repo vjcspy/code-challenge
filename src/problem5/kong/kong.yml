@@ -1,0 +1,118 @@
+_format_version: "3.0"
+_transform: true
+
+###############################################################################
+# Kong Gateway Declarative Configuration
+# 
+# This configuration provides API protection for PUBLIC DATA (token prices):
+# - Correlation ID: End-to-end request tracing (observability)
+# - Rate Limiting: Prevent abuse/DDoS (100 req/min per IP)
+# - CORS: Control allowed origins
+#
+# Authentication: NOT REQUIRED
+# - Token prices are public data, no sensitive information
+# - Frontend only reads prices for exchange rate calculation
+#
+# Future: If auth needed for other APIs (user portfolio, admin), add:
+# - key-auth plugin (API keys for internal services)
+# - jwt plugin (user authentication)
+# - oauth2 plugin (third-party integration)
+###############################################################################
+
+services:
+  #############################################################################
+  # Main API Service
+  #############################################################################
+  - name: token-price-api
+    url: http://token-price-app:3000
+    routes:
+      - name: api-routes
+        paths:
+          - /api
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+
+  #############################################################################
+  # Health Check Service
+  #############################################################################
+  - name: health-service
+    url: http://token-price-app:3000
+    routes:
+      - name: health-routes
+        paths:
+          - /health
+        strip_path: false
+        methods:
+          - GET
+
+plugins:
+  #############################################################################
+  # Correlation ID Plugin - CRITICAL for Observability
+  # Generates unique ID for each request for end-to-end tracing
+  #############################################################################
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-ID
+      generator: uuid
+      echo_downstream: true
+
+  #############################################################################
+  # Rate Limiting Plugin (API routes only)
+  # Prevents abuse by limiting requests
+  #############################################################################
+  - name: rate-limiting
+    service: token-price-api
+    config:
+      minute: 100
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+
+  #############################################################################
+  # CORS Plugin (all services)
+  # Handles Cross-Origin Resource Sharing
+  # 
+  # PRODUCTION: Replace "*" with specific allowed domains:
+  #   origins:
+  #     - "https://swap.yourcompany.com"
+  #     - "https://app.yourcompany.com"
+  #############################################################################
+  - name: cors
+    config:
+      origins:
+        - "*"  # TODO: Restrict to specific domains in production
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      headers:
+        - Content-Type
+        - Authorization
+        - X-Client-ID
+        - X-Client-Type
+        - X-Scope
+        - X-Correlation-ID
+      exposed_headers:
+        - X-Correlation-ID
+        - X-RateLimit-Limit-Minute
+        - X-RateLimit-Remaining-Minute
+      credentials: false
+      max_age: 3600
+
+  #############################################################################
+  # Request Transformer Plugin (API routes only)
+  # Adds headers to track requests through Kong
+  #############################################################################
+  - name: request-transformer
+    service: token-price-api
+    config:
+      add:
+        headers:
+          - "X-Kong-Proxy:true"

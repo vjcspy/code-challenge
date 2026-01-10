@@ -1,0 +1,89 @@
+# =============================================================================
+# Token Price API Kubernetes Deployment
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  NODE_ENV: development
+  PORT: "3000"
+  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/token_price_db?schema=public"
+  PRICE_API_URL: "https://interview.switcheo.com/prices.json"
+  PRICE_SYNC_INTERVAL_MS: "30000"
+  LOG_LEVEL: "info"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: token-price-app
+  labels:
+    app: token-price-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: token-price-app
+  template:
+    metadata:
+      labels:
+        app: token-price-app
+    spec:
+      initContainers:
+        # Wait for PostgreSQL to be ready
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -p 5432 -U postgres; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+      containers:
+        - name: token-price-app
+          image: token-price-app
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: app-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: token-price-app
+  labels:
+    app: token-price-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: token-price-app
+

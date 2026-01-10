@@ -1,0 +1,31 @@
+// Prisma Schema for Token Price API
+// Using PostgreSQL as the database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TokenPrice {
+  id        String      @id @default(uuid())
+  currency  String      @unique // One record per currency (latest price only)
+  price     Decimal     @db.Decimal(24, 18) // High precision for crypto
+  date      DateTime    // Last updated timestamp from source
+  source    PriceSource @default(EXTERNAL_API)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([currency])
+  @@index([updatedAt])
+}
+
+enum PriceSource {
+  EXTERNAL_API // From https://interview.switcheo.com/prices.json
+  FALLBACK     // From local fallback file
+  MANUAL       // Manually created/updated via API
+}
+

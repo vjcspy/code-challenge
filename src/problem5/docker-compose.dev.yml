@@ -1,0 +1,18 @@
+# =============================================================================
+# Docker Compose Override for Development
+# 
+# Use this for additional development-specific configurations
+# 
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+services:
+  app:
+    # Enable more verbose logging in development
+    environment:
+      LOG_LEVEL: debug
+    # Keep container running for debugging
+    stdin_open: true
+    tty: true
+
