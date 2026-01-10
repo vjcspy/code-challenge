@@ -6,10 +6,12 @@
 # No Kubernetes required!
 # 
 # Usage:
-#   ./scripts/dev-compose.sh        # Start all services
-#   ./scripts/dev-compose.sh down   # Stop all services
-#   ./scripts/dev-compose.sh logs   # View logs
-#   ./scripts/dev-compose.sh clean  # Remove all containers and volumes
+#   ./scripts/dev-compose.sh           # Start all services
+#   ./scripts/dev-compose.sh up --build # Start with rebuild
+#   ./scripts/dev-compose.sh build     # Build images only
+#   ./scripts/dev-compose.sh down      # Stop all services
+#   ./scripts/dev-compose.sh logs      # View logs
+#   ./scripts/dev-compose.sh clean     # Remove all containers and volumes
 # =============================================================================
 
 set -e
@@ -68,6 +70,12 @@ check_docker() {
 # Main command handler
 case "${1:-up}" in
     up|start)
+        # Check for --build flag
+        BUILD_FLAG=""
+        if [[ "$2" == "--build" || "$2" == "-b" ]]; then
+            BUILD_FLAG="--build"
+        fi
+        
         print_header "Token Price API - Starting Dev Environment"
         
         check_docker
@@ -95,10 +103,13 @@ case "${1:-up}" in
             print_success "Port 8000 freed"
         fi
         
-        print_status "Building and starting containers..."
-        docker compose up
+        if [ -n "$BUILD_FLAG" ]; then
+            print_status "Building and starting containers..."
+        else
+            print_status "Starting containers..."
+        fi
+        docker compose up -d $BUILD_FLAG
         
-        echo ""
         print_status "Waiting for services to be healthy..."
         
         # Wait for services
@@ -141,6 +152,14 @@ case "${1:-up}" in
         docker compose logs -f app
         ;;
         
+    build)
+        print_header "Building Docker Images"
+        check_docker
+        print_status "Building images..."
+        docker compose build
+        print_success "Images built successfully"
+        ;;
+        
     down|stop)
         print_header "Stopping Dev Environment"
         docker compose down
@@ -181,17 +200,18 @@ case "${1:-up}" in
         ;;
         
     *)
-        echo "Usage: $0 {up|down|logs|restart|clean|status|shell|prisma}"
+        echo "Usage: $0 {up|build|down|logs|restart|clean|status|shell|prisma}"
         echo ""
         echo "Commands:"
-        echo "  up, start  - Start all services"
-        echo "  down, stop - Stop all services"
-        echo "  logs       - View logs (optionally specify service: logs kong)"
-        echo "  restart    - Restart all services"
-        echo "  clean      - Remove all containers and volumes"
-        echo "  status     - Show container status"
-        echo "  shell      - Open shell in app container"
-        echo "  prisma     - Run prisma commands (e.g., prisma studio)"
+        echo "  up, start     - Start all services (use --build to rebuild)"
+        echo "  build         - Build images only"
+        echo "  down, stop    - Stop all services"
+        echo "  logs          - View logs (optionally specify service: logs kong)"
+        echo "  restart       - Restart all services"
+        echo "  clean         - Remove all containers and volumes"
+        echo "  status        - Show container status"
+        echo "  shell         - Open shell in app container"
+        echo "  prisma        - Run prisma commands (e.g., prisma studio)"
         exit 1
         ;;
 esac
