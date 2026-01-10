@@ -1,5 +1,15 @@
 # Scoreboard Module Specification
 
+## Task Requirements
+
+1. We have a website with a score board, which shows the top 10 user's scores.
+2. We want live update of the score board.
+3. User can do an action (which we do not need to care what the action is), completing this action will increase the user's score.
+4. Upon completion the action will dispatch an API call to the application server to update the score.
+5. We want to prevent malicious users from increasing scores without authorisation.
+
+---
+
 ## Overview
 
 This document specifies the backend module for a real-time scoreboard system that displays the top 10 users by score. The system supports live updates when user scores change and implements security measures to prevent unauthorized score manipulation.
@@ -12,6 +22,112 @@ This document specifies the backend module for a real-time scoreboard system tha
 | **Score Updates** | Process score increases when users complete actions |
 | **Live Synchronization** | Push updates to all connected clients instantly |
 | **Security** | Prevent malicious score manipulation |
+
+---
+
+## ⚠️ Critical Architectural Analysis
+
+### The Fundamental Problem with Client-Initiated Score Updates
+
+The requirement specifies that the **client dispatches an API call to update the score** after completing an action. This is an inherently insecure design pattern that experienced architects recognize as problematic.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    WHY CLIENT-INITIATED SCORING IS PROBLEMATIC                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+  CURRENT REQUIREMENT (Client-Initiated):
+  ───────────────────────────────────────
+  
+    User completes action → Frontend calls "update score" API → Score increases
+                               ▲
+                               │
+                    ┌──────────┴──────────┐
+                    │  TRUST BOUNDARY     │
+                    │  VIOLATION          │
+                    │                     │
+                    │  The server trusts  │
+                    │  that the client    │
+                    │  legitimately       │
+                    │  completed the      │
+                    │  action.            │
+                    └─────────────────────┘
+  
+  FUNDAMENTAL ISSUES:
+  ───────────────────
+  
+  1. CLIENT CODE IS UNTRUSTED
+     • JavaScript can be modified in browser DevTools
+     • Network requests can be forged with Postman/curl
+     • Malicious browser extensions can intercept and modify requests
+     • Decompiled mobile apps can be modified and repackaged
+  
+  2. NO PROOF OF WORK
+     • Server has no way to verify the action actually happened
+     • Server only knows "client claims action was completed"
+     • Any signature/token the client generates can be reverse-engineered
+  
+  3. SEPARATION OF CONCERNS VIOLATION
+     • Business logic (score calculation) should not depend on client honesty
+     • Critical state changes should be server-authoritative
+```
+
+### The Ideal Architecture (Server-Authoritative)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    RECOMMENDED: SERVER-AUTHORITATIVE SCORING                    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+  IDEAL FLOW:
+  ───────────
+  
+    User performs action → Server processes action → Server updates score
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │  SERVER CONTROLS    │
+                    │  EVERYTHING:        │
+                    │                     │
+                    │  • Action state     │
+                    │  • Validation       │
+                    │  • Score calculation│
+                    │  • Score update     │
+                    └─────────────────────┘
+  
+  EXAMPLE: Quiz Application
+  ─────────────────────────
+  
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │  1. POST /api/quiz/start                                        │
+  │     → Server creates quiz session, stores questions server-side │
+  │     → Returns session_id + first question                       │
+  │                                                                 │
+  │  2. POST /api/quiz/answer                                       │
+  │     → Server validates answer against stored correct answer     │
+  │     → Server updates score internally                           │
+  │     → Returns next question                                     │
+  │                                                                 │
+  │  3. POST /api/quiz/complete                                     │
+  │     → Server calculates final score                             │
+  │     → Server updates leaderboard                                │
+  │     → Client NEVER sends score, only receives it                │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+  
+  KEY PRINCIPLE: The client NEVER tells the server what the score is.
+                 The server CALCULATES the score based on verified actions.
+```
+
+### Why We Proceed with Client-Initiated Design
+
+Despite the architectural concerns, this specification implements a **client-initiated score update** as per the original requirements. We mitigate risks through multiple defense layers, while acknowledging that **no client-side security measure is foolproof**.
+
+This specification serves as a demonstration of:
+1. Understanding security trade-offs
+2. Implementing defense-in-depth strategies
+3. Recognizing architectural limitations
 
 ---
 
@@ -43,8 +159,9 @@ This document specifies the backend module for a real-time scoreboard system tha
 │   API Server #1     │  │   API Server #2     │  │   API Server #N     │
 │  ┌───────────────┐  │  │  ┌───────────────┐  │  │  ┌───────────────┐  │
 │  │  REST API     │  │  │  │  REST API     │  │  │  │  REST API     │  │
-│  │  - POST /score│  │  │  │  - POST /score│  │  │  │  - POST /score│  │
-│  │  - GET /top10 │  │  │  │  - GET /top10 │  │  │  │  - GET /top10 │  │
+│  │ -POST /action │  │  │  │ -POST /action │  │  │  │ -POST /action │  │
+│  │ -POST /score  │  │  │  │ -POST /score  │  │  │  │ -POST /score  │  │
+│  │ -GET /leaders │  │  │  │ -GET /leaders │  │  │  │ -GET /leaders │  │
 │  └───────────────┘  │  │  └───────────────┘  │  │  └───────────────┘  │
 │  ┌───────────────┐  │  │  ┌───────────────┐  │  │  ┌───────────────┐  │
 │  │  WebSocket    │  │  │  │  WebSocket    │  │  │  │  WebSocket    │  │
@@ -67,15 +184,15 @@ This document specifies the backend module for a real-time scoreboard system tha
            │                        │                        │
            ▼                        ▼                        ▼
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│   Redis Cache       │  │   PostgreSQL        │  │   Action Validator  │
-│  ┌───────────────┐  │  │  ┌───────────────┐  │  │  ┌───────────────┐  │
-│  │ Sorted Set    │  │  │  │ users         │  │  │  │ Verify action │  │
-│  │ "leaderboard" │  │  │  │ scores        │  │  │  │ authenticity  │  │
-│  │               │  │  │  │ action_logs   │  │  │  │ (signature)   │  │
-│  │ Score → User  │  │  │  └───────────────┘  │  │  └───────────────┘  │
-│  └───────────────┘  │  │                     │  │                     │
-│                     │  │  Source of Truth    │  │  Anti-cheat Layer   │
-│  Fast Leaderboard   │  │                     │  │                     │
+│   Redis Cache       │  │   PostgreSQL        │  │   Action Token      │
+│  ┌───────────────┐  │  │  ┌───────────────┐  │  │   Store (Redis)     │
+│  │ Sorted Set    │  │  │  │ users         │  │  │  ┌───────────────┐  │
+│  │ "leaderboard" │  │  │  │ scores        │  │  │  │ Pending       │  │
+│  │               │  │  │  │ action_logs   │  │  │  │ action tokens │  │
+│  │ Score → User  │  │  │  └───────────────┘  │  │  │ (TTL: 60s)    │  │
+│  └───────────────┘  │  │                     │  │  └───────────────┘  │
+│                     │  │  Source of Truth    │  │                     │
+│  Fast Leaderboard   │  │                     │  │  Token Validation   │
 └─────────────────────┘  └─────────────────────┘  └─────────────────────┘
 ```
 
@@ -87,7 +204,7 @@ This document specifies the backend module for a real-time scoreboard system tha
 | **Redis Cache** | Store leaderboard as sorted set for O(log N) updates |
 | **Redis Pub/Sub** | Broadcast score updates across server instances |
 | **PostgreSQL** | Persistent storage for users, scores, and action logs |
-| **Action Validator** | Verify action authenticity before updating scores |
+| **Action Token Store** | Store server-generated tokens for score update validation |
 
 ---
 
@@ -95,31 +212,75 @@ This document specifies the backend module for a real-time scoreboard system tha
 
 ### REST Endpoints
 
-#### 1. Update Score
+#### 1. Complete Action (Get Score Token)
 
 ```
-POST /api/v1/scores/action
+POST /api/v1/actions/complete
 ```
 
-**Description**: Called when a user completes an action that awards points.
+**Description**: Called when a user completes an action. Server validates the action and returns a signed token that authorizes a score update.
 
 **Headers**:
 | Header | Required | Description |
 |--------|----------|-------------|
 | `Authorization` | Yes | Bearer token (JWT) |
-| `X-Action-Signature` | Yes | HMAC signature of the action payload |
 | `X-Request-ID` | No | Client-provided request ID for tracing |
 
 **Request Body**:
 ```json
 {
-  "actionId": "string",           // Unique identifier for this action
   "actionType": "string",         // Type of action (e.g., "quiz_complete", "task_finish")
-  "timestamp": "ISO8601 string",  // When the action was completed
-  "metadata": {                   // Action-specific data (optional)
-    "difficulty": "hard",
-    "timeSpent": 120
+  "actionData": {                 // Action-specific data for server validation
+    "questionId": "q-123",
+    "selectedAnswer": "B",
+    "timeSpent": 45
+  },
+  "clientTimestamp": "ISO8601"    // When the action was completed on client
+}
+```
+
+**Response (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "scoreToken": "eyJhbGciOiJIUzI1...",   // Server-signed token for score update
+    "pointsEarned": 100,                    // Points this action is worth
+    "tokenExpiresAt": "2026-01-10T10:31:00.000Z",  // Token valid for 60 seconds
+    "actionId": "act-uuid-123"              // Server-generated action ID
   }
+}
+```
+
+**Error Responses**:
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `INVALID_ACTION_DATA` | Action data validation failed |
+| 401 | `UNAUTHORIZED` | Missing or invalid JWT token |
+| 403 | `ACTION_NOT_ALLOWED` | User not eligible for this action |
+| 429 | `RATE_LIMITED` | Too many action requests |
+
+---
+
+#### 2. Update Score
+
+```
+POST /api/v1/scores/update
+```
+
+**Description**: Update user's score using a valid score token obtained from the action completion endpoint.
+
+**Headers**:
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token (JWT) |
+| `X-Score-Token` | Yes | Token received from `/actions/complete` |
+
+**Request Body**:
+```json
+{
+  "actionId": "act-uuid-123"      // Must match the actionId from token
 }
 ```
 
@@ -142,15 +303,15 @@ POST /api/v1/scores/action
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | `INVALID_ACTION` | Action payload validation failed |
+| 400 | `INVALID_TOKEN` | Token malformed or tampered |
 | 401 | `UNAUTHORIZED` | Missing or invalid JWT token |
-| 403 | `INVALID_SIGNATURE` | Action signature verification failed |
-| 409 | `DUPLICATE_ACTION` | Action ID already processed (idempotency) |
-| 429 | `RATE_LIMITED` | Too many requests from this user |
+| 403 | `TOKEN_EXPIRED` | Score token has expired (60s TTL) |
+| 403 | `TOKEN_USER_MISMATCH` | Token was issued to different user |
+| 409 | `TOKEN_ALREADY_USED` | Score token has already been redeemed |
 
 ---
 
-#### 2. Get Leaderboard
+#### 3. Get Leaderboard
 
 ```
 GET /api/v1/scores/leaderboard
@@ -188,9 +349,8 @@ GET /api/v1/scores/leaderboard
         "score": 9200,
         "avatarUrl": "https://..."
       }
-      // ... up to limit entries
     ],
-    "currentUser": {           // Only if authenticated
+    "currentUser": {
       "rank": 42,
       "score": 3200
     },
@@ -225,7 +385,6 @@ wss://api.example.com/api/v1/scores/live?token=<jwt>
     "leaderboard": [
       { "rank": 1, "userId": "user-456", "username": "TopPlayer", "score": 9500 },
       { "rank": 2, "userId": "user-789", "username": "ProGamer", "score": 9200 }
-      // ... top 10
     ],
     "changedPositions": [
       { "userId": "user-123", "previousRank": 6, "newRank": 5, "score": 1600 }
@@ -273,56 +432,100 @@ wss://api.example.com/api/v1/scores/live?token=<jwt>
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                         SCORE UPDATE EXECUTION FLOW                             │
+│                     (Server-Issued Token Mechanism)                             │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
     USER                     FRONTEND                    API SERVER
      │                          │                            │
-     │  1. Complete Action      │                            │
+     │  1. Perform Action       │                            │
+     │     (e.g., answer quiz)  │                            │
      ├─────────────────────────►│                            │
      │                          │                            │
-     │                          │  2. Generate Action        │
-     │                          │     Signature (HMAC)       │
-     │                          │     with client secret     │
-     │                          │                            │
-     │                          │  3. POST /api/v1/scores/action
+     │                          │  2. POST /actions/complete │
      │                          │     + JWT Token            │
-     │                          │     + X-Action-Signature   │
+     │                          │     + Action Data          │
      │                          ├───────────────────────────►│
      │                          │                            │
      │                          │                    ┌───────┴───────┐
-     │                          │                    │ 4. VALIDATION │
+     │                          │                    │ 3. SERVER     │
+     │                          │                    │ VALIDATION    │
      │                          │                    ├───────────────┤
      │                          │                    │ a. Verify JWT │
-     │                          │                    │ b. Verify     │
-     │                          │                    │    Signature  │
-     │                          │                    │ c. Check      │
-     │                          │                    │    Idempotency│
-     │                          │                    │ d. Rate Limit │
-     │                          │                    │ e. Validate   │
-     │                          │                    │    Action     │
+     │                          │                    │ b. Validate   │
+     │                          │                    │    action data│
+     │                          │                    │ c. Check rate │
+     │                          │                    │    limits     │
+     │                          │                    │ d. Calculate  │
+     │                          │                    │    points     │
      │                          │                    └───────┬───────┘
      │                          │                            │
      │                          │                            ▼
      │                          │                    ┌───────────────┐
-     │                          │                    │ 5. UPDATE     │
+     │                          │                    │ 4. GENERATE   │
+     │                          │                    │ SCORE TOKEN   │
+     │                          │                    ├───────────────┤
+     │                          │                    │ JWT signed    │
+     │                          │                    │ with server   │
+     │                          │                    │ secret:       │
+     │                          │                    │ {             │
+     │                          │                    │  actionId,    │
+     │                          │                    │  userId,      │
+     │                          │                    │  points,      │
+     │                          │                    │  exp (60s)    │
+     │                          │                    │ }             │
+     │                          │                    └───────┬───────┘
+     │                          │                            │
+     │                          │                    ┌───────┴───────┐
+     │                          │                    │ 5. STORE      │
+     │                          │                    │ TOKEN STATE   │
+     │                          │                    ├───────────────┤
+     │                          │                    │ Redis:        │
+     │                          │                    │ token:{id} =  │
+     │                          │                    │ { used:false }│
+     │                          │                    │ TTL: 60s      │
+     │                          │                    └───────┬───────┘
+     │                          │                            │
+     │                          │  6. Response:              │
+     │                          │     { scoreToken, points } │
+     │                          │◄───────────────────────────┤
+     │                          │                            │
+     │                          │  7. POST /scores/update    │
+     │                          │     + JWT Token            │
+     │                          │     + X-Score-Token        │
+     │                          ├───────────────────────────►│
+     │                          │                            │
+     │                          │                    ┌───────┴───────┐
+     │                          │                    │ 8. VALIDATE   │
+     │                          │                    │    TOKEN      │
+     │                          │                    ├───────────────┤
+     │                          │                    │ a. Verify sig │
+     │                          │                    │ b. Check exp  │
+     │                          │                    │ c. Check user │
+     │                          │                    │ d. Check used │
+     │                          │                    └───────┬───────┘
+     │                          │                            │
+     │                          │                            ▼
+     │                          │                    ┌───────────────┐
+     │                          │                    │ 9. UPDATE     │
      │                          │                    │    SCORE      │
      │                          │                    ├───────────────┤
      │                          │                    │ - PostgreSQL  │
      │                          │                    │   (persist)   │
      │                          │                    │ - Redis ZADD  │
      │                          │                    │   (cache)     │
+     │                          │                    │ - Mark token  │
+     │                          │                    │   as used     │
      │                          │                    └───────┬───────┘
      │                          │                            │
-     │                          │  6. Response (200)         │
+     │                          │  10. Response (200)        │
      │                          │◄───────────────────────────┤
      │                          │                            │
-     │  7. Update UI            │                            │
+     │  11. Update UI           │                            │
      │◄─────────────────────────┤                            │
-     │     (optimistic)         │                            │
      │                          │                            │
      │                          │                            ▼
      │                          │                    ┌───────────────┐
-     │                          │                    │ 8. BROADCAST  │
+     │                          │                    │ 12. BROADCAST │
      │                          │                    ├───────────────┤
      │                          │                    │ Redis Pub/Sub │
      │                          │                    │ → All Servers │
@@ -330,70 +533,82 @@ wss://api.example.com/api/v1/scores/live?token=<jwt>
      │                          │                            │
      │                          │                            ▼
      │                          │                    ┌───────────────────────┐
-     │                          │                    │ 9. WEBSOCKET PUSH     │
-     │                          │                    │    to ALL subscribers │
+     │                          │                    │ 13. WEBSOCKET PUSH    │
+     │                          │                    │     to ALL subscribers│
      │                          │                    └───────────────────────┘
      │                          │                            │
-     │                          │  10. WebSocket Event       │
+     │                          │  14. WebSocket Event       │
      │                          │      "leaderboard:update"  │
      │                          │◄───────────────────────────┤
      │                          │                            │
-     │  11. Live Update         │                            │
+     │  15. Live Update         │                            │
      │◄─────────────────────────┤                            │
      │      (scoreboard)        │                            │
      │                          │                            │
+```
 
+### Score Token Validation Flow
 
+```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              VALIDATION DETAIL                                  │
+│                         SCORE TOKEN VALIDATION                                  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
                               ┌─────────────────┐
-                              │  Incoming       │
-                              │  Request        │
+                              │  POST /scores/  │
+                              │  update         │
                               └────────┬────────┘
                                        │
                                        ▼
                               ┌─────────────────┐
-                              │  1. JWT         │
-                         ┌────┤  Verification   ├────┐
+                              │  1. Verify JWT  │
+                         ┌────┤  (user auth)    ├────┐
                          │    └─────────────────┘    │
                       VALID                       INVALID
                          │                           │
                          ▼                           ▼
                 ┌─────────────────┐         ┌───────────────┐
-                │  2. Action      │         │ 401           │
-                │  Signature      │         │ UNAUTHORIZED  │
-                │  Verification   │         └───────────────┘
+                │  2. Decode      │         │ 401           │
+                │  Score Token    │         │ UNAUTHORIZED  │
+                │  (X-Score-Token)│         └───────────────┘
                 └────────┬────────┘
                          │
             ┌────────────┼────────────┐
          VALID           │         INVALID
+       SIGNATURE         │        SIGNATURE
             │            │            │
             ▼            │            ▼
    ┌─────────────────┐   │   ┌───────────────┐
-   │  3. Idempotency │   │   │ 403           │
-   │  Check          │   │   │ INVALID_SIG   │
-   │  (actionId)     │   │   └───────────────┘
+   │  3. Check       │   │   │ 400           │
+   │  Expiration     │   │   │ INVALID_TOKEN │
+   │  (60 seconds)   │   │   └───────────────┘
    └────────┬────────┘   │
             │            │
       ┌─────┴─────┐      │
-   NEW        DUPLICATE  │
+   VALID       EXPIRED   │
       │           │      │
       ▼           ▼      │
-┌──────────┐ ┌─────────┐ │
-│ 4. Rate  │ │ 409     │ │
-│ Limit    │ │ CONFLICT│ │
-│ Check    │ └─────────┘ │
-└────┬─────┘             │
-     │                   │
-  ┌──┴──┐                │
-PASS   FAIL              │
-  │      │               │
-  ▼      ▼               │
+┌───────────┐ ┌────────┐ │
+│ 4. Check  │ │ 403    │ │
+│ User Match│ │ EXPIRED│ │
+└─────┬─────┘ └────────┘ │
+      │                  │
+   ┌──┴──┐               │
+ MATCH  MISMATCH         │
+   │       │             │
+   ▼       ▼             │
+┌──────┐ ┌────────┐      │
+│5.Chk │ │ 403    │      │
+│ Used │ │MISMATCH│      │
+└──┬───┘ └────────┘      │
+   │                     │
+┌──┴──┐                  │
+NEW   USED               │
+ │      │                │
+ ▼      ▼                │
 ┌────┐ ┌─────┐           │
-│ 5. │ │ 429 │           │
-│ OK │ │ ERR │           │
+│ OK │ │ 409 │           │
+│    │ │ USED│           │
 └────┘ └─────┘           │
 ```
 
@@ -416,19 +631,28 @@ PASS   FAIL              │
   │ email           │    └────│                 │    │    │ action_id   UQ  │
   │ avatar_url      │         │ total_score     │    │    │ action_type     │
   │ created_at      │         │ updated_at      │    │    │ points_awarded  │
-  │ updated_at      │         └─────────────────┘    │    │ signature       │
+  │ updated_at      │         └─────────────────┘    │    │ token_id    UQ  │
   └─────────────────┘                                │    │ metadata   JSON │
                                                      │    │ processed_at    │
                                                      │    │ created_at      │
                                                      └────│                 │
                                                           └─────────────────┘
-
-  Notes:
-  ─────────────────────────────────────────────────────────────────────────────
-  • scores.total_score: Current cumulative score (denormalized for fast reads)
-  • action_logs.action_id: Unique identifier from client (idempotency key)
-  • action_logs.signature: Stored for audit trail
-  • action_logs.metadata: Flexible JSON for action-specific data
+  
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                         REDIS DATA STRUCTURES                               │
+  └─────────────────────────────────────────────────────────────────────────────┘
+  
+  ┌─────────────────┐         ┌─────────────────┐
+  │  leaderboard    │         │  score_tokens   │
+  │  (Sorted Set)   │         │  (Hash + TTL)   │
+  ├─────────────────┤         ├─────────────────┤
+  │                 │         │                 │
+  │ user-456: 9500  │         │ token:{id}:     │
+  │ user-789: 9200  │         │   used: false   │
+  │ user-123: 1600  │         │   userId: xxx   │
+  │ ...             │         │   points: 100   │
+  │                 │         │   TTL: 60s      │
+  └─────────────────┘         └─────────────────┘
 ```
 
 ### Database Schema (PostgreSQL)
@@ -455,14 +679,14 @@ CREATE TABLE scores (
 -- Create index for leaderboard queries
 CREATE INDEX idx_scores_total_score_desc ON scores(total_score DESC);
 
--- Action logs for idempotency and audit
+-- Action logs for audit trail
 CREATE TABLE action_logs (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    action_id       VARCHAR(100) NOT NULL UNIQUE,  -- Client-provided, for idempotency
+    action_id       UUID NOT NULL UNIQUE,           -- Server-generated
     action_type     VARCHAR(50) NOT NULL,
     points_awarded  INTEGER NOT NULL,
-    signature       VARCHAR(500) NOT NULL,          -- For audit trail
+    token_id        VARCHAR(100) NOT NULL UNIQUE,   -- Score token ID
     metadata        JSONB,
     processed_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -470,7 +694,7 @@ CREATE TABLE action_logs (
 
 -- Index for querying user's action history
 CREATE INDEX idx_action_logs_user_id ON action_logs(user_id);
-CREATE INDEX idx_action_logs_action_id ON action_logs(action_id);
+CREATE INDEX idx_action_logs_token_id ON action_logs(token_id);
 ```
 
 ### Redis Data Structures
@@ -487,105 +711,85 @@ ZREVRANK leaderboard <user_id>
 
 # Update score atomically:
 ZINCRBY leaderboard <points> <user_id>
+
+# Score Token State (with automatic expiration)
+HSET score_token:{token_id} used "false" userId "user-123" points 100
+EXPIRE score_token:{token_id} 60
+
+# Mark token as used:
+HSET score_token:{token_id} used "true"
 ```
 
 ---
 
 ## Security Design
 
-### 1. Authentication Layer
+### 1. Server-Issued Score Token
+
+**Why This Approach?**
+
+Unlike client-generated signatures (which can be reverse-engineered from frontend code), the score token is:
+- **Generated by the server** with a secret key the client never sees
+- **Single-use** - cannot be replayed
+- **Short-lived** - expires in 60 seconds
+- **User-bound** - tied to the authenticated user who completed the action
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         AUTHENTICATION FLOW                                     │
+│                     SERVER-ISSUED SCORE TOKEN MECHANISM                         │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-  CLIENT                                                          SERVER
-    │                                                               │
-    │  Login with credentials                                       │
-    ├──────────────────────────────────────────────────────────────►│
-    │                                                               │
-    │                                            ┌──────────────────┤
-    │                                            │ Verify           │
-    │                                            │ credentials      │
-    │                                            │                  │
-    │                                            │ Generate JWT:    │
-    │                                            │ {                │
-    │                                            │   sub: user_id,  │
-    │                                            │   exp: timestamp,│
-    │                                            │   iat: timestamp │
-    │                                            │ }                │
-    │                                            └──────────────────┤
-    │                                                               │
-    │  JWT Token + Action Secret (per-user or global)               │
-    │◄──────────────────────────────────────────────────────────────┤
-    │                                                               │
-    │  Store securely                                               │
-    │  (httpOnly cookie / secure storage)                           │
-    │                                                               │
+  FRONTEND                                                 SERVER
+    │                                                        │
+    │  User completes action                                 │
+    │                                                        │
+    │  POST /actions/complete                                │
+    │  { actionType, actionData }                            │
+    ├───────────────────────────────────────────────────────►│
+    │                                                        │
+    │                                 ┌──────────────────────┤
+    │                                 │ 1. Validate action   │
+    │                                 │    data              │
+    │                                 │                      │
+    │                                 │ 2. Calculate points  │
+    │                                 │    (server decides!) │
+    │                                 │                      │
+    │                                 │ 3. Generate token:   │
+    │                                 │    JWT.sign({        │
+    │                                 │      actionId,       │
+    │                                 │      userId,         │
+    │                                 │      points,         │
+    │                                 │      exp: +60s       │
+    │                                 │    }, SERVER_SECRET) │
+    │                                 │                      │
+    │                                 │ 4. Store in Redis:   │
+    │                                 │    token:{id}.used   │
+    │                                 │    = false           │
+    │                                 └──────────────────────┤
+    │                                                        │
+    │  { scoreToken, pointsEarned, tokenExpiresAt }          │
+    │◄───────────────────────────────────────────────────────┤
+    │                                                        │
+    │  CLIENT CANNOT:                                        │
+    │  • Modify the points (signed by server)                │
+    │  • Forge a new token (no access to SERVER_SECRET)      │
+    │  • Reuse the token (marked as used after first use)    │
+    │  • Use after expiration (60s TTL)                      │
+    │                                                        │
 ```
 
-### 2. Action Signature Verification
-
-**Purpose**: Ensure the action request originated from legitimate client code, not from a malicious script or modified client.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     ACTION SIGNATURE GENERATION & VERIFICATION                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
-  CLIENT (FRONTEND)                                           SERVER
-    │                                                           │
-    │  User completes action                                    │
-    │                                                           │
-    │  Build payload:                                           │
-    │  {                                                        │
-    │    actionId: "unique-uuid",                               │
-    │    actionType: "quiz_complete",                           │
-    │    timestamp: "2026-01-10T10:30:00Z",                     │
-    │    userId: "user-123"                                     │
-    │  }                                                        │
-    │                                                           │
-    │  Generate signature:                                      │
-    │  HMAC-SHA256(                                             │
-    │    key = ACTION_SECRET,                                   │
-    │    data = JSON.stringify(payload)                         │
-    │  )                                                        │
-    │                                                           │
-    │  POST /api/v1/scores/action                               │
-    │  Headers:                                                 │
-    │    Authorization: Bearer <jwt>                            │
-    │    X-Action-Signature: <hmac_signature>                   │
-    │  Body: payload                                            │
-    ├──────────────────────────────────────────────────────────►│
-    │                                                           │
-    │                                        ┌──────────────────┤
-    │                                        │ Recalculate      │
-    │                                        │ signature with   │
-    │                                        │ same secret      │
-    │                                        │                  │
-    │                                        │ Compare:         │
-    │                                        │ received ==      │
-    │                                        │ calculated       │
-    │                                        │                  │
-    │                                        │ If match: VALID  │
-    │                                        │ If not: REJECT   │
-    │                                        └──────────────────┤
-    │                                                           │
-```
-
-### 3. Anti-Cheat Mechanisms
+### 2. Anti-Cheat Mechanisms
 
 | Mechanism | Purpose | Implementation |
 |-----------|---------|----------------|
-| **Idempotency Key** | Prevent replay attacks | `action_id` must be unique per user |
-| **Timestamp Validation** | Prevent delayed submissions | Reject if `timestamp` > 5 minutes old |
-| **Rate Limiting** | Prevent score flooding | Max 10 score updates per minute per user |
-| **Action Signature** | Prevent forged requests | HMAC signature verification |
-| **Server-Side Validation** | Validate action legitimacy | Cross-check with game state if applicable |
-| **Anomaly Detection** | Flag suspicious patterns | Monitor for impossible score jumps |
+| **Server-Generated Token** | Prevent forged score updates | Only server can create valid tokens with SERVER_SECRET |
+| **Single-Use Token** | Prevent replay attacks | Redis tracks `used` state per token |
+| **Token Expiration** | Limit attack window | 60-second TTL on tokens |
+| **User Binding** | Prevent token theft | Token contains userId, verified against JWT |
+| **Action Validation** | Verify action legitimacy | Server validates actionData before issuing token |
+| **Rate Limiting** | Prevent score flooding | Max 10 actions per minute per user |
 
-### 4. Rate Limiting Strategy
+### 3. Rate Limiting Strategy
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -597,16 +801,17 @@ ZINCRBY leaderboard <points> <user_id>
   • 1000 requests/minute per IP
   • Protects against DDoS
 
-  Layer 2: Application (Per-User)
-  ───────────────────────────────
-  • 10 score update requests/minute per user
+  Layer 2: Application (Per-User Actions)
+  ───────────────────────────────────────
+  • 10 action completion requests/minute per user
   • Uses sliding window algorithm
-  • Stored in Redis: rate_limit:user:<user_id>
+  • Stored in Redis: rate_limit:actions:user:<user_id>
 
-  Layer 3: Action-Specific
-  ────────────────────────
-  • Cooldown periods per action type
-  • e.g., "quiz_complete" max once per 30 seconds
+  Layer 3: Score Update Throttle
+  ──────────────────────────────
+  • 10 score updates/minute per user
+  • Additional protection layer
+  • Stored in Redis: rate_limit:scores:user:<user_id>
 ```
 
 ---
@@ -640,16 +845,12 @@ ZINCRBY leaderboard <points> <user_id>
                                    │
                                    ▼
                     ┌──────────────────────────┐
-                    │       Redis Pub/Sub      │
-                    │  Channel: "scoreboard"   │
+                    │       Redis Cluster      │
                     │                          │
-                    │  When Server 1 updates   │
-                    │  a score, it publishes   │
-                    │  to this channel.        │
-                    │                          │
-                    │  All servers subscribe   │
-                    │  and push to their       │
-                    │  local WS clients.       │
+                    │  • Leaderboard (sorted)  │
+                    │  • Score tokens (hash)   │
+                    │  • Pub/Sub channels      │
+                    │  • Rate limit counters   │
                     └──────────────────────────┘
 ```
 
@@ -658,6 +859,7 @@ ZINCRBY leaderboard <points> <user_id>
 | Data | Cache Location | TTL | Invalidation |
 |------|---------------|-----|--------------|
 | Leaderboard (top 10) | Redis Sorted Set | Real-time | On score update |
+| Score tokens | Redis Hash | 60 seconds | Auto-expire |
 | User profile data | Redis Hash | 5 minutes | On profile update |
 | Rate limit counters | Redis | Sliding window | Auto-expire |
 
@@ -670,42 +872,53 @@ ZINCRBY leaderboard <points> <user_id>
 
 ---
 
-## Improvement Recommendations
+## Expert Recommendations & Improvements
 
-### Critical Security Improvements
+### 🔴 Critical: Architectural Improvements
 
 | Priority | Recommendation | Rationale |
-|----------|---------------|-----------|
-| **P0** | **Server-Side Action Validation** | Don't trust client-reported actions. If possible, validate against server-side game state. |
-| **P0** | **Token Rotation** | Implement short-lived access tokens (15 min) with refresh tokens to minimize token theft impact. |
-| **P1** | **Action Secret Rotation** | Rotate HMAC secrets periodically. Use key versioning to support graceful rotation. |
+|----------|----------------|-----------|
+| **P0** | **Move to Server-Authoritative Scoring** | The current design still trusts the client to report action completion. Ideally, all actions should be processed and validated entirely on the server. |
+| **P0** | **Server-Side Game State** | Store game/action state on server. When client claims "quiz completed", server should verify against its own records of questions asked and answers received. |
+| **P0** | **Eliminate Client Score Knowledge** | Client should never know or control the points. Server calculates and applies points internally. |
+
+### 🟠 High: Security Improvements
+
+| Priority | Recommendation | Rationale |
+|----------|----------------|-----------|
+| **P1** | **Bot Detection** | Bots that complete actions legitimately cannot be distinguished from humans. Implement CAPTCHA, behavioral analysis, and rate limiting to mitigate automated abuse. |
+| **P1** | **Behavioral Analysis** | Implement server-side analytics to detect impossible patterns (e.g., 100% accuracy, inhuman response times). |
+| **P1** | **Device Fingerprinting** | Track device characteristics to detect multi-accounting and automation. |
+| **P1** | **Token Rotation** | Implement short-lived access tokens (15 min) with refresh tokens. |
 | **P1** | **Audit Logging** | Log all score-changing operations with full context for forensic analysis. |
 
-### Performance Improvements
+### 🟡 Medium: Performance Improvements
 
 | Priority | Recommendation | Expected Impact |
-|----------|---------------|-----------------|
-| **P1** | **Batch WebSocket Updates** | Instead of pushing every score change, batch updates every 100ms. Reduces message volume by ~90%. |
-| **P2** | **Delta Updates** | Send only changed leaderboard positions instead of full top 10. Reduces payload size. |
-| **P2** | **Client-Side Caching** | Cache leaderboard on client with ETag/Last-Modified headers for REST fallback. |
+|----------|----------------|-----------------|
+| **P2** | **Batch WebSocket Updates** | Instead of pushing every score change, batch updates every 100ms. Reduces message volume by ~90%. |
+| **P2** | **Delta Updates** | Send only changed leaderboard positions instead of full top 10. |
+| **P2** | **Connection Compression** | Enable WebSocket compression for reduced bandwidth. |
 
-### Reliability Improvements
+### 🟢 Reliability Improvements
 
 | Priority | Recommendation | Rationale |
-|----------|---------------|-----------|
-| **P1** | **Circuit Breaker** | Implement circuit breaker for Redis/PostgreSQL to gracefully degrade. |
-| **P1** | **Fallback to REST** | If WebSocket disconnects, fall back to polling REST endpoint. |
-| **P2** | **Message Queue** | Use durable message queue (e.g., Kafka) instead of Redis Pub/Sub for guaranteed delivery. |
+|----------|----------------|-----------|
+| **P2** | **Circuit Breaker** | Implement circuit breaker for Redis/PostgreSQL to gracefully degrade. |
+| **P2** | **Fallback to REST** | If WebSocket disconnects, fall back to polling REST endpoint. |
+| **P3** | **Message Queue** | Use durable message queue (e.g., Kafka) instead of Redis Pub/Sub for guaranteed delivery. |
 
-### Observability Improvements
+### 🔵 Observability Improvements
 
 | Priority | Recommendation | Implementation |
-|----------|---------------|----------------|
+|----------|----------------|----------------|
 | **P1** | **Correlation ID** | Trace requests from client → API → database with unique IDs. |
-| **P1** | **Metrics Dashboard** | Track: score updates/sec, WebSocket connections, leaderboard query latency. |
-| **P2** | **Anomaly Alerts** | Alert on: score jumps > 1000 points, users with > 100 actions/hour. |
+| **P1** | **Metrics Dashboard** | Track: score updates/sec, WebSocket connections, token issuance/redemption rates. |
+| **P2** | **Anomaly Alerts** | Alert on: score jumps > 1000 points, users with > 100 actions/hour, token redemption failures spike. |
 
-### Alternative Real-Time Technologies
+---
+
+## Alternative Real-Time Technologies
 
 | Technology | Pros | Cons | Use When |
 |------------|------|------|----------|
@@ -715,7 +928,9 @@ ZINCRBY leaderboard <points> <user_id>
 
 **Recommendation**: Use **WebSocket** as primary with **SSE** or **long polling** as fallback for broader compatibility.
 
-### Future Enhancements
+---
+
+## Future Enhancements
 
 1. **Historical Leaderboards**: Store daily/weekly/monthly leaderboard snapshots
 2. **Friend Leaderboards**: Show user's rank among friends
@@ -727,12 +942,19 @@ ZINCRBY leaderboard <points> <user_id>
 
 ## Summary
 
-This specification defines a secure, scalable real-time scoreboard system with:
+This specification defines a real-time scoreboard system with **defense-in-depth security**:
 
-- **REST API** for score updates with signature verification
-- **WebSocket** for live leaderboard updates
-- **Redis** for fast leaderboard queries and pub/sub broadcasting
-- **PostgreSQL** for persistent storage and audit trails
-- **Multi-layer security** including JWT auth, action signatures, rate limiting, and idempotency
+| Layer | Mechanism |
+|-------|-----------|
+| **Authentication** | JWT tokens for user identity |
+| **Authorization** | Server-issued score tokens (single-use, time-limited) |
+| **Validation** | Server validates action data before issuing tokens |
+| **Rate Limiting** | Multi-layer throttling (IP, user, action type) |
+| **Audit Trail** | All score changes logged with full context |
+| **Real-time Updates** | WebSocket with Redis Pub/Sub for live leaderboard |
 
-The backend engineering team should prioritize the security mechanisms (P0 items) during implementation and consider the performance optimizations (P1/P2) based on actual load testing results.
+### Key Architectural Decision
+
+This design implements **client-initiated score updates** as per requirements, while acknowledging that a **server-authoritative model** would be fundamentally more secure. The server-issued token mechanism provides meaningful protection against casual attacks, but determined attackers with reverse-engineering capabilities may still find exploits.
+
+**For production systems with real value at stake**, the recommendation is to migrate toward server-authoritative scoring where the server controls all game state and score calculations.
