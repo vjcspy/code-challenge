@@ -25,7 +25,8 @@
     "test:integration": "jest --config jest.integration.config.js --runInBand",
     "test:e2e": "./scripts/test.sh",
     "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "run:all": "./scripts/run-all.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
