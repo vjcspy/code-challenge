@@ -72,8 +72,31 @@ case "${1:-up}" in
         
         check_docker
         
+        # Check if containers are already running
+        if docker compose ps -q 2>/dev/null | grep -q .; then
+            print_status "Stopping existing containers..."
+            docker compose down
+            print_success "Existing containers stopped"
+        fi
+        
+        # Check if port 3000 is in use (e.g., by dev:local)
+        if lsof -i :3000 -t &>/dev/null; then
+            print_status "Port 3000 is in use, killing process..."
+            lsof -i :3000 -t | xargs kill -9 2>/dev/null || true
+            sleep 1
+            print_success "Port 3000 freed"
+        fi
+        
+        # Check if port 8000 is in use
+        if lsof -i :8000 -t &>/dev/null; then
+            print_status "Port 8000 is in use, killing process..."
+            lsof -i :8000 -t | xargs kill -9 2>/dev/null || true
+            sleep 1
+            print_success "Port 8000 freed"
+        fi
+        
         print_status "Building and starting containers..."
-        docker compose up --build -d
+        docker compose up
         
         echo ""
         print_status "Waiting for services to be healthy..."
