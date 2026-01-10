@@ -1,21 +1,15 @@
 import pinoHttp from 'pino-http';
 
-import { RequestWithCorrelationId } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**
  * Request Logger Middleware
  *
- * Uses pino-http to log all HTTP requests with correlation ID context.
- * Logs method, path, status code, and response time.
+ * Uses pino-http to log all HTTP requests.
+ * Correlation ID is automatically injected via logger's mixin (AsyncLocalStorage).
  */
 export const requestLogger = pinoHttp({
   logger,
-
-  // Custom props to include in every log
-  customProps: (req) => ({
-    correlationId: (req as RequestWithCorrelationId).correlationId,
-  }),
 
   // Custom success message
   customSuccessMessage: (req, res) => {

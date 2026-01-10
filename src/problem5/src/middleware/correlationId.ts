@@ -2,15 +2,18 @@ import { NextFunction, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
 import { RequestWithCorrelationId } from '@/types';
+import { requestContext, RequestContext } from '@/utils/context';
 
 /**
  * Correlation ID Middleware
  *
  * Extracts X-Correlation-ID from Kong Gateway headers or generates a new UUID.
- * Attaches correlationId to request object and sets it in response headers.
+ * Sets up AsyncLocalStorage context for automatic log injection.
  *
- * This enables end-to-end request tracing:
- * Frontend → Kong → Backend → Database
+ * This enables:
+ * - End-to-end request tracing: Frontend → Kong → Backend → Database
+ * - Automatic correlationId injection in all logs (via AsyncLocalStorage)
+ * - Response header for frontend debugging
  */
 export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Extract correlation ID from Kong Gateway header or generate new one
@@ -19,11 +22,23 @@ export function correlationIdMiddleware(req: Request, res: Response, next: NextF
     (req.headers['x-request-id'] as string) ||
     uuidv4();
 
-  // Attach to request for use in handlers and logging
+  // Attach to request for backward compatibility
   (req as RequestWithCorrelationId).correlationId = correlationId;
 
   // Set response header for frontend debugging
   res.setHeader('X-Correlation-ID', correlationId);
 
-  next();
+  // Create request context
+  const context: RequestContext = {
+    correlationId,
+    method: req.method,
+    path: req.path,
+    startTime: Date.now(),
+  };
+
+  // Run the rest of the request within this context
+  // All code executed after this will have access to the context
+  requestContext.run(context, () => {
+    next();
+  });
 }

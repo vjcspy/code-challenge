@@ -7,8 +7,7 @@ import {
   UpdateTokenPriceBody,
 } from '@/schemas/tokenPrice.schema';
 import { TokenPriceService, tokenPriceService } from '@/services/tokenPrice.service';
-import { RequestWithCorrelationId } from '@/types';
-import { createRequestLogger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Async handler wrapper
@@ -27,6 +26,8 @@ const asyncHandler =
  *
  * Error handling: NO try-catch blocks.
  * All errors bubble up to the global error handler middleware.
+ *
+ * Logging: Uses logger directly - correlationId is auto-injected via AsyncLocalStorage
  */
 export class TokenPriceController {
   private service: TokenPriceService;
@@ -41,8 +42,6 @@ export class TokenPriceController {
    */
   list = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const query = req.query as unknown as ListTokenPricesQuery;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.debug({ filters: query }, 'Listing token prices');
 
@@ -63,8 +62,6 @@ export class TokenPriceController {
    */
   getByCurrency = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { currency } = req.params;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.debug({ currency }, 'Getting token price by currency');
 
@@ -79,8 +76,6 @@ export class TokenPriceController {
    */
   getById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.debug({ id }, 'Getting token price by ID');
 
@@ -95,8 +90,6 @@ export class TokenPriceController {
    */
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const body = req.body as CreateTokenPriceBody;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.info({ currency: body.currency }, 'Creating token price');
 
@@ -112,8 +105,6 @@ export class TokenPriceController {
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const body = req.body as UpdateTokenPriceBody;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.info({ id, updates: body }, 'Updating token price');
 
@@ -128,8 +119,6 @@ export class TokenPriceController {
    */
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.info({ id }, 'Deleting token price');
 
@@ -144,8 +133,6 @@ export class TokenPriceController {
    */
   exchangeRate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const query = req.query as unknown as ExchangeRateQuery;
-    const correlationId = (req as RequestWithCorrelationId).correlationId;
-    const logger = createRequestLogger(correlationId);
 
     logger.debug({ from: query.from, to: query.to, amount: query.amount }, 'Calculating exchange rate');
 

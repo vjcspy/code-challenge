@@ -482,37 +482,69 @@ src/problem5/
 - [x] Create `src/jobs/index.ts` - Job scheduler initialization
 
 #### Step 5: Observability & Correlation ID (Critical)
+
+**Approach**: Use `AsyncLocalStorage` for automatic context propagation. No need to pass correlationId explicitly or create child loggers - context is automatically injected into every log entry.
+
+- [x] Create `src/utils/context.ts` - AsyncLocalStorage for request context:
+  ```typescript
+  import { AsyncLocalStorage } from 'async_hooks';
+  
+  interface RequestContext {
+    correlationId: string;
+    method?: string;
+    path?: string;
+  }
+  
+  export const requestContext = new AsyncLocalStorage<RequestContext>();
+  
+  export function getContext(): RequestContext | undefined {
+    return requestContext.getStore();
+  }
+  
+  export function getCorrelationId(): string {
+    return getContext()?.correlationId || 'no-context';
+  }
+  ```
+
 - [x] Create `src/middleware/correlationId.ts`:
   ```typescript
-  // Extract X-Correlation-ID from Kong, attach to request context
-  // Set X-Correlation-ID in response headers for frontend
+  // Extract X-Correlation-ID from Kong, set up AsyncLocalStorage context
   export const correlationIdMiddleware = (req, res, next) => {
     const correlationId = req.headers['x-correlation-id'] || uuidv4();
     req.correlationId = correlationId;
     res.setHeader('X-Correlation-ID', correlationId);
-    next();
+    
+    // Run rest of request within this context - auto-propagates to all async code
+    requestContext.run({ correlationId, method: req.method, path: req.path }, () => {
+      next();
+    });
   };
   ```
-- [x] Create `src/middleware/requestLogger.ts`:
+
+- [x] Update `src/utils/logger.ts` - Pino with mixin for auto context injection:
   ```typescript
-  // Pino HTTP logger with correlationId context
+  export const logger = pino({
+    // ... config
+    mixin() {
+      const ctx = getContext();
+      if (ctx) {
+        return { correlationId: ctx.correlationId, method: ctx.method, path: ctx.path };
+      }
+      return {};
+    },
+  });
+  // Just use logger.info(), logger.error() anywhere - correlationId auto-injected!
+  ```
+
+- [x] Create `src/middleware/requestLogger.ts` - pino-http for HTTP request logging:
+  ```typescript
   export const requestLogger = pinoHttp({
-    logger: logger,
-    customProps: (req) => ({
-      correlationId: req.correlationId,
-    }),
-    customSuccessMessage: (req, res) => 
-      `${req.method} ${req.url} completed`,
-    customErrorMessage: (req, res, err) => 
-      `${req.method} ${req.url} failed: ${err.message}`,
+    logger,  // Uses logger with mixin, correlationId auto-injected
+    customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+    customErrorMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode} - Error`,
   });
   ```
-- [x] Update `src/utils/logger.ts` - Pino with child logger support for correlationId:
-  ```typescript
-  // Create child logger with correlationId context
-  export const createRequestLogger = (correlationId: string) => 
-    logger.child({ correlationId });
-  ```
+
 
 #### Step 6: Error Handling & Validation
 - [x] Create `src/errors/AppError.ts` - Custom error class with status codes

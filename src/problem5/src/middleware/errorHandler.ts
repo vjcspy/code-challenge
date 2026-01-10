@@ -4,7 +4,8 @@ import { ZodError } from 'zod';
 import { BusinessError } from '@/errors/BusinessError';
 import { DataAccessError } from '@/errors/DataAccessError';
 import { ApiErrorResponse, RequestWithCorrelationId } from '@/types';
-import { createRequestLogger } from '@/utils/logger';
+import { getCorrelationId } from '@/utils/context';
+import { logger } from '@/utils/logger';
 
 /**
  * Global Error Handler Middleware
@@ -17,18 +18,11 @@ import { createRequestLogger } from '@/utils/logger';
  * - ZodError: Request validation errors
  * - Unknown errors: Converted to 500 Internal Server Error
  *
- * Each error is logged exactly ONCE with correlation ID for tracing.
+ * Each error is logged exactly ONCE with correlation ID (auto-injected via AsyncLocalStorage)
  */
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
-  const correlationId = (req as RequestWithCorrelationId).correlationId;
-  const logger = createRequestLogger(correlationId);
-
-  // Common log context
-  const logContext = {
-    path: req.path,
-    method: req.method,
-    correlationId,
-  };
+  const correlationId =
+    (req as RequestWithCorrelationId).correlationId || getCorrelationId();
 
   // Handle Zod validation errors
   if (err instanceof ZodError) {
@@ -43,7 +37,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       })),
     };
 
-    logger.warn({ ...logContext, type: 'ValidationError', errors: err.errors }, 'Request validation failed');
+    logger.warn({ type: 'ValidationError', errors: err.errors }, 'Request validation failed');
 
     res.status(400).json(errorResponse);
     return;
@@ -60,10 +54,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     };
 
     // Business errors are expected operational errors - log as warn
-    logger.warn(
-      { ...logContext, type: 'BusinessError', code: err.code, statusCode: err.statusCode },
-      err.message
-    );
+    logger.warn({ type: 'BusinessError', code: err.code, statusCode: err.statusCode }, err.message);
 
     res.status(err.statusCode).json(errorResponse);
     return;
@@ -81,7 +72,6 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     // Data access errors are infrastructure errors - log as error with original error details
     logger.error(
       {
-        ...logContext,
         type: 'DataAccessError',
         code: err.code,
         originalError: err.originalError?.message,
@@ -105,7 +95,6 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   // Unknown errors are unexpected - log as error with full stack trace
   logger.error(
     {
-      ...logContext,
       type: 'UnhandledError',
       name: err.name,
       message: err.message,
@@ -122,7 +111,8 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
  * Handles requests to undefined routes
  */
 export function notFoundHandler(req: Request, res: Response): void {
-  const correlationId = (req as RequestWithCorrelationId).correlationId;
+  const correlationId =
+    (req as RequestWithCorrelationId).correlationId || getCorrelationId();
 
   const errorResponse: ApiErrorResponse = {
     error: 'Not Found',
