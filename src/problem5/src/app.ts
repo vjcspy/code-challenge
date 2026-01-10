@@ -3,10 +3,10 @@ import express, { Express } from 'express';
 import helmet from 'helmet';
 
 import {
-  correlationIdMiddleware,
   errorHandler,
   notFoundHandler,
   rateLimiter,
+  requestContextMiddleware,
   requestLogger,
 } from './middleware';
 import { routes } from './routes';
@@ -44,7 +44,7 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
   // Correlation ID middleware (must be before request logger)
-  app.use(correlationIdMiddleware);
+  app.use(requestContextMiddleware);
 
   // Request logging with correlation ID
   app.use(requestLogger);

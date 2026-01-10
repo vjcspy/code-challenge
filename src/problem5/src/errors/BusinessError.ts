@@ -24,9 +24,7 @@ export class BusinessError extends Error {
    * Resource not found (404)
    */
   static notFound(resource: string, identifier?: string): BusinessError {
-    const message = identifier
-      ? `${resource} '${identifier}' not found`
-      : `${resource} not found`;
+    const message = identifier ? `${resource} '${identifier}' not found` : `${resource} not found`;
     return new BusinessError(message, 404, 'NOT_FOUND');
   }
 
@@ -58,4 +56,3 @@ export class BusinessError extends Error {
     return new BusinessError(message, 503, 'SERVICE_UNAVAILABLE');
   }
 }
-

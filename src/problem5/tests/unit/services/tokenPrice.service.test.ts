@@ -234,7 +234,9 @@ describe('TokenPriceService', () => {
         updatedAt: new Date(),
       };
 
-      mockRepository.findByCurrency.mockResolvedValueOnce(ethToken).mockResolvedValueOnce(usdcToken);
+      mockRepository.findByCurrency
+        .mockResolvedValueOnce(ethToken)
+        .mockResolvedValueOnce(usdcToken);
 
       const result = await service.calculateExchangeRate({
         from: 'ETH',

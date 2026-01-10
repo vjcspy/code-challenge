@@ -24,11 +24,7 @@ export class DataAccessError extends Error {
    * Database connection error
    */
   static connectionError(originalError?: Error): DataAccessError {
-    return new DataAccessError(
-      'Database connection failed',
-      'DB_CONNECTION_ERROR',
-      originalError
-    );
+    return new DataAccessError('Database connection failed', 'DB_CONNECTION_ERROR', originalError);
   }
 
   /**
@@ -77,4 +73,3 @@ export class DataAccessError extends Error {
     return new DataAccessError(message, 'DATABASE_ERROR', originalError);
   }
 }
-

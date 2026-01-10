@@ -40,4 +40,3 @@ export function getCorrelationId(): string {
 export function runWithContext<T>(context: RequestContext, fn: () => T): T {
   return requestContext.run(context, fn);
 }
-

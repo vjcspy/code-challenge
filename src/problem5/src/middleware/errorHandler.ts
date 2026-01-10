@@ -21,8 +21,7 @@ import { logger } from '@/utils/logger';
  * Each error is logged exactly ONCE with correlation ID (auto-injected via AsyncLocalStorage)
  */
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
-  const correlationId =
-    (req as RequestWithCorrelationId).correlationId || getCorrelationId();
+  const correlationId = (req as RequestWithCorrelationId).correlationId || getCorrelationId();
 
   // Handle Zod validation errors
   if (err instanceof ZodError) {
@@ -111,8 +110,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
  * Handles requests to undefined routes
  */
 export function notFoundHandler(req: Request, res: Response): void {
-  const correlationId =
-    (req as RequestWithCorrelationId).correlationId || getCorrelationId();
+  const correlationId = (req as RequestWithCorrelationId).correlationId || getCorrelationId();
 
   const errorResponse: ApiErrorResponse = {
     error: 'Not Found',

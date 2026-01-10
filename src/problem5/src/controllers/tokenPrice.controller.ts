@@ -134,7 +134,10 @@ export class TokenPriceController {
   exchangeRate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const query = req.query as unknown as ExchangeRateQuery;
 
-    logger.debug({ from: query.from, to: query.to, amount: query.amount }, 'Calculating exchange rate');
+    logger.debug(
+      { from: query.from, to: query.to, amount: query.amount },
+      'Calculating exchange rate'
+    );
 
     const result = await this.service.calculateExchangeRate(query);
 

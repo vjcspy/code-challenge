@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
 import { RequestWithCorrelationId } from '@/types';
-import { requestContext, RequestContext } from '@/utils/context';
+import { RequestContext, requestContext } from '@/utils/context';
 
 /**
  * Correlation ID Middleware
@@ -15,7 +15,7 @@ import { requestContext, RequestContext } from '@/utils/context';
  * - Automatic correlationId injection in all logs (via AsyncLocalStorage)
  * - Response header for frontend debugging
  */
-export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
+export function requestContextMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Extract correlation ID from Kong Gateway header or generate new one
   const correlationId =
     (req.headers['x-correlation-id'] as string) ||
