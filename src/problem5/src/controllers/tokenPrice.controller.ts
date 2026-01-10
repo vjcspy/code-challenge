@@ -11,8 +11,22 @@ import { RequestWithCorrelationId } from '@/types';
 import { createRequestLogger } from '@/utils/logger';
 
 /**
+ * Async handler wrapper
+ * Automatically catches errors and passes them to next()
+ * No need for try-catch in controller methods
+ */
+const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+
+/**
  * Token Price Controller
  * Handles HTTP requests for token price operations
+ *
+ * Error handling: NO try-catch blocks.
+ * All errors bubble up to the global error handler middleware.
  */
 export class TokenPriceController {
   private service: TokenPriceService;
@@ -25,151 +39,120 @@ export class TokenPriceController {
    * GET /api/token-prices
    * List token prices with filters and pagination
    */
-  list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const query = req.query as unknown as ListTokenPricesQuery;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  list = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const query = req.query as unknown as ListTokenPricesQuery;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.debug({ filters: query }, 'Listing token prices');
+    logger.debug({ filters: query }, 'Listing token prices');
 
-      const result = await this.service.getTokenPrices({
-        page: query.page,
-        limit: query.limit,
-        currency: query.currency,
-        minPrice: query.minPrice,
-        maxPrice: query.maxPrice,
-      });
+    const result = await this.service.getTokenPrices({
+      page: query.page,
+      limit: query.limit,
+      currency: query.currency,
+      minPrice: query.minPrice,
+      maxPrice: query.maxPrice,
+    });
 
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(200).json(result);
+  });
 
   /**
    * GET /api/token-prices/:currency
    * Get token price by currency
    */
-  getByCurrency = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { currency } = req.params;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  getByCurrency = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { currency } = req.params;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.debug({ currency }, 'Getting token price by currency');
+    logger.debug({ currency }, 'Getting token price by currency');
 
-      const result = await this.service.getTokenPriceByCurrency(currency);
+    const result = await this.service.getTokenPriceByCurrency(currency);
 
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(200).json(result);
+  });
 
   /**
    * GET /api/token-prices/id/:id
    * Get token price by ID
    */
-  getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  getById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.debug({ id }, 'Getting token price by ID');
+    logger.debug({ id }, 'Getting token price by ID');
 
-      const result = await this.service.getTokenPriceById(id);
+    const result = await this.service.getTokenPriceById(id);
 
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(200).json(result);
+  });
 
   /**
    * POST /api/token-prices
    * Create a new token price
    */
-  create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const body = req.body as CreateTokenPriceBody;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const body = req.body as CreateTokenPriceBody;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.info({ currency: body.currency }, 'Creating token price');
+    logger.info({ currency: body.currency }, 'Creating token price');
 
-      const result = await this.service.createTokenPrice(body);
+    const result = await this.service.createTokenPrice(body);
 
-      res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(201).json(result);
+  });
 
   /**
    * PUT /api/token-prices/:id
    * Update an existing token price
    */
-  update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const body = req.body as UpdateTokenPriceBody;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const body = req.body as UpdateTokenPriceBody;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.info({ id, updates: body }, 'Updating token price');
+    logger.info({ id, updates: body }, 'Updating token price');
 
-      const result = await this.service.updateTokenPrice(id, body);
+    const result = await this.service.updateTokenPrice(id, body);
 
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(200).json(result);
+  });
 
   /**
    * DELETE /api/token-prices/:id
    * Delete a token price
    */
-  delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.info({ id }, 'Deleting token price');
+    logger.info({ id }, 'Deleting token price');
 
-      await this.service.deleteTokenPrice(id);
+    await this.service.deleteTokenPrice(id);
 
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(204).send();
+  });
 
   /**
    * GET /api/exchange-rate
    * Calculate exchange rate between two currencies
    */
-  exchangeRate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const query = req.query as unknown as ExchangeRateQuery;
-      const correlationId = (req as RequestWithCorrelationId).correlationId;
-      const logger = createRequestLogger(correlationId);
+  exchangeRate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const query = req.query as unknown as ExchangeRateQuery;
+    const correlationId = (req as RequestWithCorrelationId).correlationId;
+    const logger = createRequestLogger(correlationId);
 
-      logger.debug(
-        { from: query.from, to: query.to, amount: query.amount },
-        'Calculating exchange rate'
-      );
+    logger.debug({ from: query.from, to: query.to, amount: query.amount }, 'Calculating exchange rate');
 
-      const result = await this.service.calculateExchangeRate(query);
+    const result = await this.service.calculateExchangeRate(query);
 
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(200).json(result);
+  });
 }
 
 // Export singleton instance

@@ -1,7 +1,7 @@
 import { PriceSource } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
-import { AppError } from '@/errors/AppError';
+import { BusinessError } from '@/errors/BusinessError';
 import { TokenPriceRepository } from '@/repositories/tokenPrice.repository';
 import { TokenPriceService } from '@/services/tokenPrice.service';
 
@@ -56,12 +56,12 @@ describe('TokenPriceService', () => {
       expect(mockRepository.findByCurrency).toHaveBeenCalledWith('ETH');
     });
 
-    it('should throw NotFound error when currency not found', async () => {
+    it('should throw BusinessError.notFound when currency not found', async () => {
       mockRepository.findByCurrency.mockResolvedValue(null);
 
-      await expect(service.getTokenPriceByCurrency('UNKNOWN')).rejects.toThrow(AppError);
+      await expect(service.getTokenPriceByCurrency('UNKNOWN')).rejects.toThrow(BusinessError);
       await expect(service.getTokenPriceByCurrency('UNKNOWN')).rejects.toThrow(
-        "Token price for currency 'UNKNOWN' not found"
+        "Token price 'UNKNOWN' not found"
       );
     });
   });
@@ -94,7 +94,7 @@ describe('TokenPriceService', () => {
       expect(mockRepository.create).toHaveBeenCalled();
     });
 
-    it('should throw Conflict error when currency already exists', async () => {
+    it('should throw BusinessError.conflict when currency already exists', async () => {
       const existingToken = {
         id: 'existing-id',
         currency: 'ETH',
@@ -108,7 +108,7 @@ describe('TokenPriceService', () => {
       mockRepository.findByCurrency.mockResolvedValue(existingToken);
 
       await expect(service.createTokenPrice({ currency: 'ETH', price: 3000 })).rejects.toThrow(
-        AppError
+        BusinessError
       );
       await expect(service.createTokenPrice({ currency: 'ETH', price: 3000 })).rejects.toThrow(
         "Token price for currency 'ETH' already exists"
@@ -147,15 +147,15 @@ describe('TokenPriceService', () => {
       });
     });
 
-    it('should throw NotFound error when token not found', async () => {
+    it('should throw BusinessError.notFound when token not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
       await expect(service.updateTokenPrice('non-existent', { price: 100 })).rejects.toThrow(
-        AppError
+        BusinessError
       );
     });
 
-    it('should throw Conflict error when updating to existing currency', async () => {
+    it('should throw BusinessError.conflict when updating to existing currency', async () => {
       const existingToken = {
         id: 'test-id',
         currency: 'ETH',
@@ -205,10 +205,10 @@ describe('TokenPriceService', () => {
       expect(mockRepository.delete).toHaveBeenCalledWith('test-id');
     });
 
-    it('should throw NotFound error when token not found', async () => {
+    it('should throw BusinessError.notFound when token not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(service.deleteTokenPrice('non-existent')).rejects.toThrow(AppError);
+      await expect(service.deleteTokenPrice('non-existent')).rejects.toThrow(BusinessError);
     });
   });
 
@@ -234,9 +234,7 @@ describe('TokenPriceService', () => {
         updatedAt: new Date(),
       };
 
-      mockRepository.findByCurrency
-        .mockResolvedValueOnce(ethToken)
-        .mockResolvedValueOnce(usdcToken);
+      mockRepository.findByCurrency.mockResolvedValueOnce(ethToken).mockResolvedValueOnce(usdcToken);
 
       const result = await service.calculateExchangeRate({
         from: 'ETH',
@@ -251,7 +249,7 @@ describe('TokenPriceService', () => {
       expect(result.result).toBe(5000); // 2 ETH * 2500 = 5000 USDC
     });
 
-    it('should throw NotFound error when from currency not found', async () => {
+    it('should throw BusinessError.notFound when from currency not found', async () => {
       mockRepository.findByCurrency.mockResolvedValueOnce(null);
 
       await expect(
@@ -259,7 +257,7 @@ describe('TokenPriceService', () => {
       ).rejects.toThrow("Currency 'UNKNOWN' not found");
     });
 
-    it('should throw NotFound error when to currency not found', async () => {
+    it('should throw BusinessError.notFound when to currency not found', async () => {
       const ethToken = {
         id: 'eth-id',
         currency: 'ETH',

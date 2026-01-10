@@ -1,6 +1,6 @@
 import { PriceSource, TokenPrice } from '@prisma/client';
 
-import { AppError } from '@/errors/AppError';
+import { BusinessError } from '@/errors/BusinessError';
 import { TokenPriceRepository, tokenPriceRepository } from '@/repositories/tokenPrice.repository';
 import {
   CreateTokenPriceBody,
@@ -17,6 +17,9 @@ import {
 /**
  * Token Price Service
  * Business logic layer for token price operations
+ *
+ * Error handling: Throws BusinessError for all business logic errors.
+ * Does NOT catch errors - they bubble up to middleware.
  */
 export class TokenPriceService {
   private repository: TokenPriceRepository;
@@ -44,7 +47,7 @@ export class TokenPriceService {
     const tokenPrice = await this.repository.findByCurrency(currency);
 
     if (!tokenPrice) {
-      throw AppError.notFound(`Token price for currency '${currency}' not found`);
+      throw BusinessError.notFound('Token price', currency);
     }
 
     return this.formatTokenPrice(tokenPrice);
@@ -57,7 +60,7 @@ export class TokenPriceService {
     const tokenPrice = await this.repository.findById(id);
 
     if (!tokenPrice) {
-      throw AppError.notFound(`Token price with ID '${id}' not found`);
+      throw BusinessError.notFound('Token price', id);
     }
 
     return this.formatTokenPrice(tokenPrice);
@@ -70,7 +73,7 @@ export class TokenPriceService {
     // Check if currency already exists
     const existing = await this.repository.findByCurrency(data.currency);
     if (existing) {
-      throw AppError.conflict(`Token price for currency '${data.currency}' already exists`);
+      throw BusinessError.conflict(`Token price for currency '${data.currency}' already exists`);
     }
 
     const tokenPrice = await this.repository.create({
@@ -90,14 +93,14 @@ export class TokenPriceService {
     // Check if token price exists
     const existing = await this.repository.findById(id);
     if (!existing) {
-      throw AppError.notFound(`Token price with ID '${id}' not found`);
+      throw BusinessError.notFound('Token price', id);
     }
 
     // If updating currency, check for conflicts
     if (data.currency && data.currency !== existing.currency) {
       const conflicting = await this.repository.findByCurrency(data.currency);
       if (conflicting) {
-        throw AppError.conflict(`Token price for currency '${data.currency}' already exists`);
+        throw BusinessError.conflict(`Token price for currency '${data.currency}' already exists`);
       }
     }
 
@@ -117,7 +120,7 @@ export class TokenPriceService {
   async deleteTokenPrice(id: string): Promise<void> {
     const existing = await this.repository.findById(id);
     if (!existing) {
-      throw AppError.notFound(`Token price with ID '${id}' not found`);
+      throw BusinessError.notFound('Token price', id);
     }
 
     await this.repository.delete(id);
@@ -136,11 +139,11 @@ export class TokenPriceService {
     ]);
 
     if (!fromPrice) {
-      throw AppError.notFound(`Currency '${from}' not found`);
+      throw BusinessError.notFound('Currency', from);
     }
 
     if (!toPrice) {
-      throw AppError.notFound(`Currency '${to}' not found`);
+      throw BusinessError.notFound('Currency', to);
     }
 
     // Calculate exchange rate
