@@ -147,12 +147,24 @@ PREREQ_OK=true
 print_step "Checking Docker..."
 if check_command docker; then
     if docker info > /dev/null 2>&1; then
-        print_success "Docker is running"
+        DOCKER_VERSION=$(docker --version | cut -d ' ' -f 3 | tr -d ',')
+        print_success "Docker $DOCKER_VERSION is running"
     else
         print_error "Docker daemon is not running. Please start Docker Desktop."
         PREREQ_OK=false
     fi
 else
+    PREREQ_OK=false
+fi
+
+print_step "Checking Docker Compose..."
+if docker compose version > /dev/null 2>&1; then
+    COMPOSE_VERSION=$(docker compose version --short 2>/dev/null || docker compose version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    print_success "Docker Compose $COMPOSE_VERSION"
+else
+    print_error "Docker Compose is not installed or not available."
+    print_info "Docker Compose v2 is required. It comes with Docker Desktop."
+    print_info "If using Linux, install docker-compose-plugin: https://docs.docker.com/compose/install/"
     PREREQ_OK=false
 fi
 

@@ -1,13 +1,14 @@
-import { Request, Response, NextFunction } from 'express';
-import { TokenPriceService, tokenPriceService } from '../services/tokenPrice.service';
-import { RequestWithCorrelationId } from '../types';
-import { createRequestLogger } from '../utils/logger';
+import { NextFunction, Request, Response } from 'express';
+
 import {
-  ListTokenPricesQuery,
   CreateTokenPriceBody,
-  UpdateTokenPriceBody,
   ExchangeRateQuery,
-} from '../schemas/tokenPrice.schema';
+  ListTokenPricesQuery,
+  UpdateTokenPriceBody,
+} from '@/schemas/tokenPrice.schema';
+import { TokenPriceService, tokenPriceService } from '@/services/tokenPrice.service';
+import { RequestWithCorrelationId } from '@/types';
+import { createRequestLogger } from '@/utils/logger';
 
 /**
  * Token Price Controller
@@ -157,7 +158,10 @@ export class TokenPriceController {
       const correlationId = (req as RequestWithCorrelationId).correlationId;
       const logger = createRequestLogger(correlationId);
 
-      logger.debug({ from: query.from, to: query.to, amount: query.amount }, 'Calculating exchange rate');
+      logger.debug(
+        { from: query.from, to: query.to, amount: query.amount },
+        'Calculating exchange rate'
+      );
 
       const result = await this.service.calculateExchangeRate(query);
 
@@ -170,4 +174,3 @@ export class TokenPriceController {
 
 // Export singleton instance
 export const tokenPriceController = new TokenPriceController();
-

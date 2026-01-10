@@ -1,13 +1,13 @@
-import { config, validateConfig } from './config';
 import { app } from './app';
-import { connectDatabase, disconnectDatabase } from './utils/prisma';
-import { logger, logStartup, logShutdown } from './utils/logger';
-import { priceSyncService } from './services/priceSync.service';
+import { config, validateConfig } from './config';
 import { startPriceSyncJob, stopPriceSyncJob } from './jobs';
+import { priceSyncService } from './services/priceSync.service';
+import { logger, logShutdown, logStartup } from './utils/logger';
+import { connectDatabase, disconnectDatabase } from './utils/prisma';
 
 /**
  * Application Entry Point
- * 
+ *
  * Handles:
  * - Configuration validation
  * - Database connection
@@ -89,4 +89,3 @@ process.on('unhandledRejection', (reason: unknown) => {
 
 // Start the server
 startServer();
-

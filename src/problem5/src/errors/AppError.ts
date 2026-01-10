@@ -81,4 +81,3 @@ export class AppError extends Error {
     return new AppError(message, 503, true);
   }
 }
-

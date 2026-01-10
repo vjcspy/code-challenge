@@ -1,12 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { NextFunction, Request, Response } from 'express';
+import { ZodError, ZodSchema } from 'zod';
 
 /**
  * Request Validation Middleware Factory
- * 
+ *
  * Creates middleware that validates request data against a Zod schema.
  * Supports validation of body, query, and params.
- * 
+ *
  * @param schema - Zod schema for validation
  * @param source - Request property to validate ('body' | 'query' | 'params')
  */
@@ -20,7 +20,7 @@ export function validateRequest<T>(
       const validated = schema.parse(data);
 
       // Replace with validated and transformed data
-      req[source] = validated as typeof req[typeof source];
+      req[source] = validated as (typeof req)[typeof source];
 
       next();
     } catch (error) {
@@ -38,13 +38,11 @@ export function validateRequest<T>(
  * Validate multiple sources
  * Useful for validating both body and query params together
  */
-export function validateMultiple(
-  schemas: {
-    body?: ZodSchema;
-    query?: ZodSchema;
-    params?: ZodSchema;
-  }
-) {
+export function validateMultiple(schemas: {
+  body?: ZodSchema;
+  query?: ZodSchema;
+  params?: ZodSchema;
+}) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
       if (schemas.body) {
@@ -62,4 +60,3 @@ export function validateMultiple(
     }
   };
 }
-

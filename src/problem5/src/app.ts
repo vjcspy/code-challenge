@@ -1,12 +1,13 @@
+import cors from 'cors';
 import express, { Express } from 'express';
 import helmet from 'helmet';
-import cors from 'cors';
+
 import {
   correlationIdMiddleware,
-  requestLogger,
   errorHandler,
   notFoundHandler,
   rateLimiter,
+  requestLogger,
 } from './middleware';
 import { routes } from './routes';
 
@@ -20,19 +21,21 @@ export function createApp(): Express {
   app.use(helmet());
 
   // CORS - In production, this is handled by Kong
-  app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Client-ID',
-      'X-Client-Type',
-      'X-Scope',
-      'X-Correlation-ID',
-    ],
-    exposedHeaders: ['X-Correlation-ID'],
-  }));
+  app.use(
+    cors({
+      origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Client-ID',
+        'X-Client-Type',
+        'X-Scope',
+        'X-Correlation-ID',
+      ],
+      exposedHeaders: ['X-Correlation-ID'],
+    })
+  );
 
   // Parse JSON bodies
   app.use(express.json({ limit: '10kb' }));
@@ -63,4 +66,3 @@ export function createApp(): Express {
 
 // Export singleton app instance
 export const app = createApp();
-

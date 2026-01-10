@@ -1,6 +1,1 @@
-export {
-  startPriceSyncJob,
-  stopPriceSyncJob,
-  isPriceSyncJobRunning,
-} from './priceSyncJob';
-
+export { isPriceSyncJobRunning, startPriceSyncJob, stopPriceSyncJob } from './priceSyncJob';

@@ -1,8 +1,9 @@
-import { TokenPriceService } from '../../../src/services/tokenPrice.service';
-import { TokenPriceRepository } from '../../../src/repositories/tokenPrice.repository';
-import { AppError } from '../../../src/errors/AppError';
 import { PriceSource } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+
+import { AppError } from '@/errors/AppError';
+import { TokenPriceRepository } from '@/repositories/tokenPrice.repository';
+import { TokenPriceService } from '@/services/tokenPrice.service';
 
 // Mock repository
 const mockRepository: jest.Mocked<TokenPriceRepository> = {
@@ -58,9 +59,7 @@ describe('TokenPriceService', () => {
     it('should throw NotFound error when currency not found', async () => {
       mockRepository.findByCurrency.mockResolvedValue(null);
 
-      await expect(service.getTokenPriceByCurrency('UNKNOWN')).rejects.toThrow(
-        AppError
-      );
+      await expect(service.getTokenPriceByCurrency('UNKNOWN')).rejects.toThrow(AppError);
       await expect(service.getTokenPriceByCurrency('UNKNOWN')).rejects.toThrow(
         "Token price for currency 'UNKNOWN' not found"
       );
@@ -108,12 +107,12 @@ describe('TokenPriceService', () => {
 
       mockRepository.findByCurrency.mockResolvedValue(existingToken);
 
-      await expect(
-        service.createTokenPrice({ currency: 'ETH', price: 3000 })
-      ).rejects.toThrow(AppError);
-      await expect(
-        service.createTokenPrice({ currency: 'ETH', price: 3000 })
-      ).rejects.toThrow("Token price for currency 'ETH' already exists");
+      await expect(service.createTokenPrice({ currency: 'ETH', price: 3000 })).rejects.toThrow(
+        AppError
+      );
+      await expect(service.createTokenPrice({ currency: 'ETH', price: 3000 })).rejects.toThrow(
+        "Token price for currency 'ETH' already exists"
+      );
     });
   });
 
@@ -151,9 +150,9 @@ describe('TokenPriceService', () => {
     it('should throw NotFound error when token not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.updateTokenPrice('non-existent', { price: 100 })
-      ).rejects.toThrow(AppError);
+      await expect(service.updateTokenPrice('non-existent', { price: 100 })).rejects.toThrow(
+        AppError
+      );
     });
 
     it('should throw Conflict error when updating to existing currency', async () => {
@@ -180,9 +179,9 @@ describe('TokenPriceService', () => {
       mockRepository.findById.mockResolvedValue(existingToken);
       mockRepository.findByCurrency.mockResolvedValue(conflictingToken);
 
-      await expect(
-        service.updateTokenPrice('test-id', { currency: 'BTC' })
-      ).rejects.toThrow("Token price for currency 'BTC' already exists");
+      await expect(service.updateTokenPrice('test-id', { currency: 'BTC' })).rejects.toThrow(
+        "Token price for currency 'BTC' already exists"
+      );
     });
   });
 
@@ -209,9 +208,7 @@ describe('TokenPriceService', () => {
     it('should throw NotFound error when token not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(service.deleteTokenPrice('non-existent')).rejects.toThrow(
-        AppError
-      );
+      await expect(service.deleteTokenPrice('non-existent')).rejects.toThrow(AppError);
     });
   });
 
@@ -273,9 +270,7 @@ describe('TokenPriceService', () => {
         updatedAt: new Date(),
       };
 
-      mockRepository.findByCurrency
-        .mockResolvedValueOnce(ethToken)
-        .mockResolvedValueOnce(null);
+      mockRepository.findByCurrency.mockResolvedValueOnce(ethToken).mockResolvedValueOnce(null);
 
       await expect(
         service.calculateExchangeRate({ from: 'ETH', to: 'UNKNOWN', amount: 1 })
@@ -325,4 +320,3 @@ describe('TokenPriceService', () => {
     });
   });
 });
-

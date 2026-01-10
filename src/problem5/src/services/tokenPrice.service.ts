@@ -1,17 +1,18 @@
-import { TokenPrice, PriceSource } from '@prisma/client';
-import { TokenPriceRepository, tokenPriceRepository } from '../repositories/tokenPrice.repository';
-import { AppError } from '../errors/AppError';
-import {
-  TokenPriceFilters,
-  PaginatedResponse,
-  TokenPriceResponse,
-  ExchangeRateResponse,
-} from '../types';
+import { PriceSource, TokenPrice } from '@prisma/client';
+
+import { AppError } from '@/errors/AppError';
+import { TokenPriceRepository, tokenPriceRepository } from '@/repositories/tokenPrice.repository';
 import {
   CreateTokenPriceBody,
-  UpdateTokenPriceBody,
   ExchangeRateQuery,
-} from '../schemas/tokenPrice.schema';
+  UpdateTokenPriceBody,
+} from '@/schemas/tokenPrice.schema';
+import {
+  ExchangeRateResponse,
+  PaginatedResponse,
+  TokenPriceFilters,
+  TokenPriceResponse,
+} from '@/types';
 
 /**
  * Token Price Service
@@ -27,9 +28,7 @@ export class TokenPriceService {
   /**
    * Get paginated list of token prices
    */
-  async getTokenPrices(
-    filters: TokenPriceFilters
-  ): Promise<PaginatedResponse<TokenPriceResponse>> {
+  async getTokenPrices(filters: TokenPriceFilters): Promise<PaginatedResponse<TokenPriceResponse>> {
     const result = await this.repository.findMany(filters);
 
     return {
@@ -179,4 +178,3 @@ export class TokenPriceService {
 
 // Export singleton instance
 export const tokenPriceService = new TokenPriceService();
-

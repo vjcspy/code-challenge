@@ -1,20 +1,20 @@
 import { Router } from 'express';
-import { tokenPriceController } from '../controllers/tokenPrice.controller';
-import { validateRequest } from '../middleware/validateRequest';
+
+import { tokenPriceController } from '@/controllers/tokenPrice.controller';
+import { validateRequest } from '@/middleware';
 import {
-  listTokenPricesQuerySchema,
+  createTokenPriceBodySchema,
   getTokenPriceByCurrencyParamsSchema,
   getTokenPriceByIdParamsSchema,
-  createTokenPriceBodySchema,
+  listTokenPricesQuerySchema,
   updateTokenPriceBodySchema,
-  exchangeRateQuerySchema,
-} from '../schemas/tokenPrice.schema';
+} from '@/schemas/tokenPrice.schema';
 
 const router = Router();
 
 /**
  * Token Price Routes
- * 
+ *
  * All routes are prefixed with /api/token-prices
  */
 
@@ -22,11 +22,7 @@ const router = Router();
  * GET /api/token-prices
  * List all token prices with optional filters and pagination
  */
-router.get(
-  '/',
-  validateRequest(listTokenPricesQuerySchema, 'query'),
-  tokenPriceController.list
-);
+router.get('/', validateRequest(listTokenPricesQuerySchema, 'query'), tokenPriceController.list);
 
 /**
  * GET /api/token-prices/id/:id
@@ -52,11 +48,7 @@ router.get(
  * POST /api/token-prices
  * Create a new token price
  */
-router.post(
-  '/',
-  validateRequest(createTokenPriceBodySchema, 'body'),
-  tokenPriceController.create
-);
+router.post('/', validateRequest(createTokenPriceBodySchema, 'body'), tokenPriceController.create);
 
 /**
  * PUT /api/token-prices/:id
@@ -80,4 +72,3 @@ router.delete(
 );
 
 export const tokenPriceRoutes = router;
-

@@ -1,6 +1,7 @@
-import { PriceSyncService } from '../../../src/services/priceSync.service';
-import { TokenPriceRepository } from '../../../src/repositories/tokenPrice.repository';
 import { PriceSource } from '@prisma/client';
+
+import { TokenPriceRepository } from '@/repositories/tokenPrice.repository';
+import { PriceSyncService } from '@/services/priceSync.service';
 
 // Mock the httpClient
 jest.mock('../../../src/utils/httpClient', () => ({
@@ -23,7 +24,7 @@ jest.mock('../../../data/fallback-prices.json', () => [
   { currency: 'BTC', price: 40000, date: '2024-01-01T00:00:00.000Z' },
 ]);
 
-import { fetchExternalPrices } from '../../../src/utils/httpClient';
+import { fetchExternalPrices } from '@/utils/httpClient';
 
 const mockFetchExternalPrices = fetchExternalPrices as jest.MockedFunction<
   typeof fetchExternalPrices
@@ -188,4 +189,3 @@ describe('PriceSyncService', () => {
     });
   });
 });
-

@@ -1,9 +1,10 @@
 import rateLimit from 'express-rate-limit';
-import { config } from '../config';
+
+import { config } from '@/config';
 
 /**
  * Rate Limiter Middleware
- * 
+ *
  * Provides backup rate limiting in case Kong's rate limiting is bypassed.
  * In production, Kong should be the primary rate limiter.
  */
@@ -26,4 +27,3 @@ export const rateLimiter = rateLimit({
     return req.path === '/health' || req.path === '/health/ready';
   },
 });
-

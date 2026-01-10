@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { z, ZodError } from 'zod';
-import { validateRequest, validateMultiple } from '../../../src/middleware/validateRequest';
+
+import { validateMultiple, validateRequest } from '@/middleware';
 
 describe('validateRequest', () => {
   let mockRequest: Partial<Request>;
@@ -173,4 +174,3 @@ describe('validateMultiple', () => {
     expect(mockNext).toHaveBeenCalledWith(expect.any(ZodError));
   });
 });
-

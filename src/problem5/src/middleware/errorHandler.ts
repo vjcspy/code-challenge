@@ -1,25 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { AppError } from '../errors/AppError';
-import { createRequestLogger } from '../utils/logger';
-import { RequestWithCorrelationId, ApiErrorResponse } from '../types';
+
+import { AppError } from '@/errors/AppError';
+import { ApiErrorResponse, RequestWithCorrelationId } from '@/types';
+import { createRequestLogger } from '@/utils/logger';
 
 /**
  * Global Error Handler Middleware
- * 
+ *
  * Handles all errors thrown in the application:
  * - AppError: Custom operational errors
  * - ZodError: Validation errors
  * - Unknown errors: Converted to 500 Internal Server Error
- * 
+ *
  * All errors are logged with correlation ID for tracing.
  */
-export function errorHandler(
-  err: Error,
-  req: Request,
-  res: Response,
-  _next: NextFunction
-): void {
+export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
   const correlationId = (req as RequestWithCorrelationId).correlationId;
   const logger = createRequestLogger(correlationId);
 
@@ -127,4 +123,3 @@ export function notFoundHandler(req: Request, res: Response): void {
 
   res.status(404).json(errorResponse);
 }
-

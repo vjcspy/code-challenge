@@ -1,6 +1,6 @@
-import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
-import request from 'supertest';
 import { Express } from 'express';
+import request from 'supertest';
+import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 
 describe('Token Price API Integration Tests', () => {
   let postgresContainer: StartedTestContainer;
@@ -52,13 +52,11 @@ describe('Token Price API Integration Tests', () => {
     let createdId: string;
 
     it('POST /api/token-prices - should create a new token price', async () => {
-      const response = await request(app)
-        .post('/api/token-prices')
-        .send({
-          currency: 'TEST_TOKEN',
-          price: 123.45,
-          date: '2024-01-01T00:00:00.000Z',
-        });
+      const response = await request(app).post('/api/token-prices').send({
+        currency: 'TEST_TOKEN',
+        price: 123.45,
+        date: '2024-01-01T00:00:00.000Z',
+      });
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
@@ -87,11 +85,9 @@ describe('Token Price API Integration Tests', () => {
     });
 
     it('PUT /api/token-prices/:id - should update token price', async () => {
-      const response = await request(app)
-        .put(`/api/token-prices/${createdId}`)
-        .send({
-          price: 999.99,
-        });
+      const response = await request(app).put(`/api/token-prices/${createdId}`).send({
+        price: 999.99,
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.price).toBe('999.99');
@@ -155,15 +151,21 @@ describe('Token Price API Integration Tests', () => {
   describe('Exchange Rate Calculation', () => {
     beforeAll(async () => {
       // Ensure test tokens exist
-      await request(app).post('/api/token-prices').send({
-        currency: 'FROM_TOKEN',
-        price: 100,
-      }).catch(() => {}); // Ignore if already exists
-      
-      await request(app).post('/api/token-prices').send({
-        currency: 'TO_TOKEN',
-        price: 50,
-      }).catch(() => {}); // Ignore if already exists
+      await request(app)
+        .post('/api/token-prices')
+        .send({
+          currency: 'FROM_TOKEN',
+          price: 100,
+        })
+        .catch(() => {}); // Ignore if already exists
+
+      await request(app)
+        .post('/api/token-prices')
+        .send({
+          currency: 'TO_TOKEN',
+          price: 50,
+        })
+        .catch(() => {}); // Ignore if already exists
     });
 
     it('should calculate exchange rate', async () => {
@@ -190,12 +192,10 @@ describe('Token Price API Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should return 400 for invalid request body', async () => {
-      const response = await request(app)
-        .post('/api/token-prices')
-        .send({
-          currency: '', // Empty currency
-          price: -100, // Negative price
-        });
+      const response = await request(app).post('/api/token-prices').send({
+        currency: '', // Empty currency
+        price: -100, // Negative price
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -224,4 +224,3 @@ describe('Token Price API Integration Tests', () => {
     });
   });
 });
-

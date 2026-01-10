@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { correlationIdMiddleware } from '../../../src/middleware/correlationId';
-import { RequestWithCorrelationId } from '../../../src/types';
+import { NextFunction, Request, Response } from 'express';
+
+import { correlationIdMiddleware } from '@/middleware';
+import { RequestWithCorrelationId } from '@/types';
 
 // Mock uuid
 jest.mock('uuid', () => ({
@@ -27,15 +28,9 @@ describe('correlationIdMiddleware', () => {
       'x-correlation-id': 'existing-correlation-id',
     };
 
-    correlationIdMiddleware(
-      mockRequest as Request,
-      mockResponse as Response,
-      mockNext
-    );
+    correlationIdMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe(
-      'existing-correlation-id'
-    );
+    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe('existing-correlation-id');
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
       'X-Correlation-ID',
       'existing-correlation-id'
@@ -48,15 +43,9 @@ describe('correlationIdMiddleware', () => {
       'x-request-id': 'request-id-from-header',
     };
 
-    correlationIdMiddleware(
-      mockRequest as Request,
-      mockResponse as Response,
-      mockNext
-    );
+    correlationIdMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe(
-      'request-id-from-header'
-    );
+    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe('request-id-from-header');
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
       'X-Correlation-ID',
       'request-id-from-header'
@@ -67,19 +56,10 @@ describe('correlationIdMiddleware', () => {
   it('should generate new UUID when no correlation ID in headers', () => {
     mockRequest.headers = {};
 
-    correlationIdMiddleware(
-      mockRequest as Request,
-      mockResponse as Response,
-      mockNext
-    );
+    correlationIdMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe(
-      'generated-uuid-12345'
-    );
-    expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'X-Correlation-ID',
-      'generated-uuid-12345'
-    );
+    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe('generated-uuid-12345');
+    expect(mockResponse.setHeader).toHaveBeenCalledWith('X-Correlation-ID', 'generated-uuid-12345');
     expect(mockNext).toHaveBeenCalled();
   });
 
@@ -89,26 +69,15 @@ describe('correlationIdMiddleware', () => {
       'x-request-id': 'request-id',
     };
 
-    correlationIdMiddleware(
-      mockRequest as Request,
-      mockResponse as Response,
-      mockNext
-    );
+    correlationIdMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe(
-      'correlation-id'
-    );
+    expect((mockRequest as RequestWithCorrelationId).correlationId).toBe('correlation-id');
   });
 
   it('should call next() to continue middleware chain', () => {
-    correlationIdMiddleware(
-      mockRequest as Request,
-      mockResponse as Response,
-      mockNext
-    );
+    correlationIdMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
 
     expect(mockNext).toHaveBeenCalledTimes(1);
     expect(mockNext).toHaveBeenCalledWith();
   });
 });
-

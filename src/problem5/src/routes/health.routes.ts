@@ -1,14 +1,15 @@
-import { Router, Request, Response } from 'express';
-import { checkDatabaseHealth } from '../utils/prisma';
-import { priceSyncService } from '../services/priceSync.service';
-import { HealthCheckResponse, ReadinessCheckResponse } from '../types';
+import { Request, Response, Router } from 'express';
+
+import { priceSyncService } from '@/services/priceSync.service';
+import { HealthCheckResponse, ReadinessCheckResponse } from '@/types';
+import { checkDatabaseHealth } from '@/utils/prisma';
 
 const router = Router();
 const startTime = Date.now();
 
 /**
  * Health Check Routes
- * 
+ *
  * Provides K8s-compatible health check endpoints
  */
 
@@ -49,4 +50,3 @@ router.get('/ready', async (_req: Request, res: Response) => {
 });
 
 export const healthRoutes = router;
-

@@ -1,5 +1,7 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import { config } from '../config';
+import axios, { AxiosError, AxiosInstance } from 'axios';
+
+import { config } from '@/config';
+
 import { logger } from './logger';
 
 /**
@@ -91,4 +93,3 @@ export async function fetchExternalPrices<T>(
 
   throw lastError;
 }
-

@@ -1,8 +1,10 @@
 import { PriceSource } from '@prisma/client';
-import { TokenPriceRepository, tokenPriceRepository } from '../repositories/tokenPrice.repository';
-import { fetchExternalPrices } from '../utils/httpClient';
-import { logger, logPriceSync } from '../utils/logger';
-import { ExternalTokenPrice, TokenPriceData } from '../types';
+
+import { TokenPriceRepository, tokenPriceRepository } from '@/repositories/tokenPrice.repository';
+import { ExternalTokenPrice, TokenPriceData } from '@/types';
+import { fetchExternalPrices } from '@/utils/httpClient';
+import { logger, logPriceSync } from '@/utils/logger';
+
 import fallbackPrices from '../../data/fallback-prices.json';
 
 /**
@@ -48,10 +50,7 @@ export class PriceSyncService {
 
       logPriceSync('completed', { count, source: 'EXTERNAL_API' });
     } catch (error) {
-      logger.warn(
-        { error: (error as Error).message },
-        'External API failed, attempting fallback'
-      );
+      logger.warn({ error: (error as Error).message }, 'External API failed, attempting fallback');
 
       try {
         // Use fallback data
@@ -109,10 +108,7 @@ export class PriceSyncService {
    * - Deduplicate by currency (keep latest by date)
    * - Convert to internal format
    */
-  private processPrices(
-    prices: ExternalTokenPrice[],
-    source: PriceSource
-  ): TokenPriceData[] {
+  private processPrices(prices: ExternalTokenPrice[], source: PriceSource): TokenPriceData[] {
     // Group by currency and keep the one with latest date
     const priceMap = new Map<string, ExternalTokenPrice>();
 
@@ -144,4 +140,3 @@ export class PriceSyncService {
 
 // Export singleton instance
 export const priceSyncService = new PriceSyncService();
-

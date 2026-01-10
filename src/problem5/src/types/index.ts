@@ -1,5 +1,5 @@
-import { Request } from 'express';
 import { PriceSource } from '@prisma/client';
+import { Request } from 'express';
 
 /**
  * Extended Express Request with correlation ID
@@ -118,4 +118,3 @@ export interface ApiErrorResponse {
   correlationId?: string;
   details?: unknown;
 }
-

@@ -1,11 +1,12 @@
 import cron from 'node-cron';
-import { config } from '../config';
-import { priceSyncService } from '../services/priceSync.service';
-import { logger } from '../utils/logger';
+
+import { config } from '@/config';
+import { priceSyncService } from '@/services/priceSync.service';
+import { logger } from '@/utils/logger';
 
 /**
  * Price Sync Cron Job
- * 
+ *
  * Periodically fetches token prices from external API
  * Default interval: 30 seconds
  */
@@ -54,10 +55,7 @@ export function startPriceSyncJob(): void {
       try {
         await priceSyncService.syncPrices();
       } catch (error) {
-        logger.error(
-          { error: (error as Error).message },
-          'Price sync job failed'
-        );
+        logger.error({ error: (error as Error).message }, 'Price sync job failed');
       }
     },
     {
@@ -86,4 +84,3 @@ export function stopPriceSyncJob(): void {
 export function isPriceSyncJobRunning(): boolean {
   return cronJob !== null;
 }
-

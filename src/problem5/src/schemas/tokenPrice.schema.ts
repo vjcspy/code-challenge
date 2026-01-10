@@ -83,4 +83,3 @@ export const exchangeRateQuerySchema = z.object({
 });
 
 export type ExchangeRateQuery = z.infer<typeof exchangeRateQuerySchema>;
-

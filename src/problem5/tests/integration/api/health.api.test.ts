@@ -1,6 +1,6 @@
-import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
-import request from 'supertest';
 import { Express } from 'express';
+import request from 'supertest';
+import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 
 describe('Health API Integration Tests', () => {
   let postgresContainer: StartedTestContainer;
@@ -85,13 +85,10 @@ describe('Health API Integration Tests', () => {
     it('should return same X-Correlation-ID when provided in request', async () => {
       const correlationId = 'test-correlation-id-12345';
 
-      const response = await request(app)
-        .get('/health')
-        .set('X-Correlation-ID', correlationId);
+      const response = await request(app).get('/health').set('X-Correlation-ID', correlationId);
 
       expect(response.status).toBe(200);
       expect(response.headers['x-correlation-id']).toBe(correlationId);
     });
   });
 });
-

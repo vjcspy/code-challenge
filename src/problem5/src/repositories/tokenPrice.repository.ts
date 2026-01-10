@@ -1,6 +1,7 @@
-import { PrismaClient, TokenPrice, PriceSource, Prisma } from '@prisma/client';
-import { prisma } from '../utils/prisma';
-import { TokenPriceData, TokenPriceFilters, PaginatedResponse } from '../types';
+import { PriceSource, Prisma, PrismaClient, TokenPrice } from '@prisma/client';
+
+import { PaginatedResponse, TokenPriceData, TokenPriceFilters } from '@/types';
+import { prisma } from '@/utils/prisma';
 
 /**
  * Token Price Repository
@@ -207,4 +208,3 @@ export class TokenPriceRepository {
 
 // Export singleton instance
 export const tokenPriceRepository = new TokenPriceRepository();
-

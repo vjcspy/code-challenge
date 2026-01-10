@@ -1,5 +1,6 @@
 import pino, { Logger } from 'pino';
-import { config } from '../config';
+
+import { config } from '@/config';
 
 /**
  * Base Pino logger instance
@@ -68,4 +69,3 @@ export function logPriceSync(
     logger.info({ ...details, job: 'priceSync' }, message);
   }
 }
-
