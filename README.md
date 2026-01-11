@@ -37,7 +37,7 @@ This mindset shapes how I approached each problem:
 
 ### The Approach
 
-When facing any problem—whether complex or simple—my first question is always:
+When facing any problem, whether complex or simple, my first question is always:
 
 > *"Can I reduce this problem to something simpler?"*
 
@@ -85,7 +85,7 @@ This is an open-ended problem. As a senior engineer, I understand that solving a
 
 > **Note on Kubernetes**: Initially, I planned to use [Tilt](https://tilt.dev/) for local K8s development since production would run on Kubernetes. However, this would require reviewers to have Kubernetes running locally, creating unnecessary friction. Docker Compose provides a simpler, more accessible solution while still demonstrating the same architectural patterns.
 
-**I know exactly what I'm doing.** When issues arise, I understand the root cause and know where to improve and which layer to fix. Instead of just making things work, I focus on understanding the fundamentals. To achieve this, I've continuously invested in learning—not just at the application layer, but at deeper levels:
+**I know exactly what I'm doing.** When issues arise, I understand the root cause and know where to improve and which layer to fix. Instead of just making things work, I focus on understanding the fundamentals. To achieve this, I've continuously invested in learning, not just at the application layer, but at deeper levels:
 
 - **Languages**: Deep understanding of JavaScript, Java, Python, C# and their underlying principles
 - **Frameworks**: Knowing the strengths of different frameworks and applying them appropriately
@@ -189,7 +189,7 @@ The `run-all.sh` script provides an interactive experience:
 | **3. Dev Environment**   | Starts Docker Compose services           | PostgreSQL + Kong Gateway + Express App |
 | **4. API Tests (E2E)**   | Tests against running environment        | All endpoints via Kong Gateway          |
 
-Each step is **optional**—you can choose to run or skip any step.
+Each step is **optional**. You can choose to run or skip any step.
 
 #### Service Endpoints (After Step 3)
 
@@ -292,7 +292,7 @@ code-challenge/
 
 ## 🙏 Final Thoughts
 
-There's much more I'd love to discuss—from architectural patterns to infrastructure decisions, from testing strategies to monitoring approaches. However, to keep this document focused and respect your time, I've tried to highlight the most important aspects while providing detailed documentation in the respective folders.
+There's much more I'd love to discuss, from architectural patterns to infrastructure decisions, from testing strategies to monitoring approaches. However, to keep this document focused and respect your time, I've tried to highlight the most important aspects while providing detailed documentation in the respective folders.
 
 Thank you for taking the time to review my work. I look forward to any feedback or questions you might have!
 
