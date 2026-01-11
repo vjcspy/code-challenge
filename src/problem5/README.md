@@ -32,55 +32,20 @@ A production-ready CRUD backend service for token price management, built with E
 
 ### Prerequisites
 
-- Docker Desktop (Kubernetes optional)
-- Node.js 20+ (for local development without containers)
+- Docker Desktop
+- Node.js 20+
 
-### Option 1: Docker Compose (Recommended)
-
-The easiest way to start development - no Kubernetes required!
+### Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Start all services (PostgreSQL, Kong, App with hot-reload)
+# Interactive guide: tests → dev environment → API tests
+./scripts/run-all.sh
+
+# Or start dev environment directly
 npm run dev
-```
-
-That's it! The script will:
-1. Build and start all containers
-2. Run database migrations automatically
-3. Start the app with hot-reload
-4. Show logs (Ctrl+C to exit logs, services keep running)
-
-### Option 2: Tilt (Kubernetes)
-
-For a more production-like environment with Kubernetes:
-
-```bash
-# Make sure Kubernetes is enabled in Docker Desktop
-npm run dev:tilt
-```
-
-### Option 3: Local Development (No Containers)
-
-```bash
-# Start PostgreSQL manually
-docker run -d --name postgres \
-  -e POSTGRES_DB=token_price_db \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  postgres:15-alpine
-
-# Create .env file
-cp .env.example .env
-
-# Run migrations
-npx prisma migrate dev
-
-# Start dev server
-npm run dev:local
 ```
 
 ### Access Points
@@ -92,17 +57,13 @@ npm run dev:local
 | Kong Admin | http://localhost:8001 | Kong Gateway admin API |
 | PostgreSQL | localhost:5432 | Database (user: postgres, pass: postgres) |
 
-### Development Commands
+### Testing
 
 ```bash
-npm run dev          # Start all services with Docker Compose
-npm run dev:down     # Stop all services
-npm run dev:logs     # View logs
-npm run dev:clean    # Remove containers and volumes
-npm run dev:status   # Show container status
-npm run dev:shell    # Open shell in app container
-npm run dev:tilt     # Start with Tilt/Kubernetes
-npm run test:e2e     # Run API integration tests
+npm run test              # Run all tests
+npm run test:unit         # Unit tests only
+npm run test:integration  # Integration tests (uses Testcontainers)
+npm run test:e2e          # API tests against running environment
 ```
 
 ## 📚 API Documentation
@@ -206,30 +167,7 @@ All responses include:
 }
 ```
 
-## 🔧 Development
-
-### Local Development (without Kubernetes)
-
-```bash
-# 1. Start PostgreSQL
-docker run -d --name postgres \
-  -e POSTGRES_DB=token_price_db \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  postgres:15-alpine
-
-# 2. Create .env file
-cp .env.example .env
-
-# 3. Run migrations
-npx prisma migrate dev
-
-# 4. Start development server
-npm run dev
-```
-
-### Project Structure
+## 🔧 Project Structure
 
 ```
 src/problem5/
@@ -253,19 +191,6 @@ src/problem5/
 ├── kong/               # Kong configuration
 ├── scripts/            # Setup scripts
 └── data/               # Fallback data
-```
-
-### Scripts
-
-```bash
-npm run dev             # Start development server
-npm run build           # Build TypeScript
-npm run start           # Start production server
-npm run db:migrate      # Run database migrations
-npm run db:studio       # Open Prisma Studio
-npm run test            # Run all tests
-npm run test:unit       # Run unit tests
-npm run test:integration # Run integration tests
 ```
 
 ## 🔒 Environment Variables
@@ -300,22 +225,6 @@ Every request is assigned a unique correlation ID:
   "statusCode": 200,
   "duration": 45
 }
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run unit tests only
-npm run test:unit
-
-# Run integration tests (requires Docker)
-npm run test:integration
-
-# Run with coverage
-npm run test:coverage
 ```
 
 ## 📝 License

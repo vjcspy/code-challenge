@@ -23,6 +23,12 @@ This document specifies the backend module for a real-time scoreboard system tha
 | **Live Synchronization** | Push updates to all connected clients instantly |
 | **Security** | Prevent malicious score manipulation |
 
+### 📁 Related Documents
+
+| Document | Description |
+|----------|-------------|
+| [Implementation Plan](../../plans/260111-problem6-scoreboard-module.md) | Detailed implementation plan with file structure, code examples, and step-by-step tasks |
+
 ---
 
 ## ⚠️ Critical Architectural Analysis
