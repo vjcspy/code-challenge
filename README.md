@@ -6,7 +6,7 @@
 
 ## 📋 Table of Contents
 
-- [Philosophy: AI-Assisted Development](#-philosophy-ai-assisted-development)
+- [My Approach](#-my-approach)
 - [Problem 4: Sum to N](#-problem-4-sum-to-n)
 - [Problem 5: Token Price API](#-problem-5-token-price-api)
   - [Key Architectural Decisions](#key-architectural-decisions)
@@ -17,13 +17,11 @@
 
 ---
 
-## 🤖 Philosophy: AI-Assisted Development
+## 💡 My Approach
 
-As the challenge mentioned, AI can now help us accomplish many things. It has truly had a massive impact on how we build applications. I don't deny using AI to complete this code challenge.
+As mentioned in the challenge, AI has become a powerful tool in software development. I don't deny using AI to assist with this code challenge—but I believe **the most important thing is truly knowing what you're doing**, understanding the "why" behind every decision, not just the "how."
 
-However, **the most important thing, in my opinion, is "truly knowing what you're doing."**
-
-This philosophy manifests differently across the three problems:
+This mindset shapes how I approached each problem:
 
 | Problem       | Key Principle            | Demonstration                                            |
 |---------------|--------------------------|----------------------------------------------------------|
