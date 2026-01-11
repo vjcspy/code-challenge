@@ -1,6 +1,6 @@
 # Code Challenge
 
-> Hello Reviewer! I'm Kai, and this document serves as both an instruction guide and a space to share my thoughts on this code challenge. I'll walk you through each problem, present my perspective, and provide step-by-step guidance so you can review and run the applications smoothly.
+> Hello Reviewer! I'm Kai. Thank you for taking the time to review my work. This document serves as both an instruction guide and a space to share my thoughts on this code challenge. I'll walk you through each problem, present my perspective, and provide step-by-step guidance so you can review and run the applications smoothly.
 
 ---
 
