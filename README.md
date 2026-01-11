@@ -89,7 +89,7 @@ This is an open-ended problem. As a senior engineer, I understand that solving a
 
 - **Languages**: Deep understanding of JavaScript, Java, Python, C# and their underlying principles
 - **Frameworks**: Knowing the strengths of different frameworks and applying them appropriately
-- **Infrastructure**: I have some devops certifications like: `AWS`, `Harness`, `Kubernetes`, `Terraform`... certifications to gain a comprehensive view across the stack
+- **Infrastructure**: Certified in `AWS`, `Kubernetes` (CKAD), `Terraform`, `Harness`... giving me a comprehensive view across the full stack
 
 This breadth of knowledge enables me to have a holistic perspective when developing solutions.
 
@@ -144,16 +144,7 @@ throw new BusinessError('Currency not found', { currency, internalMessage: 'Pric
 
 Clear error classification helps BAU/SRE teams quickly understand application behavior and identify the failure layer.
 
-#### The Future: AI-Powered Debugging
-
-When we have solid observability foundations, leveraging AI for system analysis becomes trivial. Imagine an LLM that can:
-
-1. Query logs using correlation ID
-2. Read error context and stack traces
-3. Cross-reference with source code
-4. **Identify root cause in seconds**
-
-This is only possible when the logging infrastructure is consistent and well-structured.
+With consistent logging infrastructure, debugging becomes straightforward, whether done manually or with automated tools.
 
 ---
 
@@ -227,7 +218,17 @@ npm run test:e2e
 
 **Location**: `src/problem6/`
 
-This problem involves designing a real-time scoreboard system with significant architectural considerations. Rather than just providing a simple solution, I've documented a comprehensive analysis including:
+This problem involves designing a real-time scoreboard system with significant architectural considerations. Rather than just providing a simple solution, I've documented a comprehensive analysis.
+
+### My Perspective
+
+The requirement asks for client-initiated score updates, which is fundamentally insecure. Instead of ignoring this, I chose to:
+
+1. **Acknowledge the limitation** openly in the specification
+2. **Propose the ideal solution** (server-authoritative scoring)
+3. **Implement defense-in-depth** for the required approach
+
+This demonstrates understanding of security trade-offs rather than blindly following requirements.
 
 ### Key Topics Covered
 
