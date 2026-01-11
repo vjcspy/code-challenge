@@ -1,5 +1,7 @@
 # Scoreboard Module Specification
 
+> 📌 **Note**: If you haven't read the main [`README.md`](../../README.md) at the repository root, please start there for context and my approach to this challenge.
+
 ## Task Requirements
 
 1. We have a website with a score board, which shows the top 10 user's scores.

@@ -1,5 +1,7 @@
 # Problem 4: Sum to N
 
+> 📌 **Note**: If you haven't read the main [`README.md`](../../README.md) at the repository root, please start there for context and my approach to this challenge.
+
 Three unique implementations of the `sum_to_n` function in TypeScript.
 
 ## Problem

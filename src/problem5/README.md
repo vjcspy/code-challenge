@@ -1,5 +1,7 @@
 # Token Price API
 
+> 📌 **Note**: If you haven't read the main [`README.md`](../../README.md) at the repository root, please start there for context and my approach to this challenge.
+
 A production-ready CRUD backend service for token price management, built with ExpressJS, TypeScript, Prisma, and Kong Gateway.
 
 ## 🏗️ Architecture
