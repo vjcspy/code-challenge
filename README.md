@@ -19,7 +19,7 @@
 
 ## 💡 My Approach
 
-As mentioned in the challenge, AI has become a powerful tool in software development. I don't deny using AI to assist with this code challenge—but I believe **the most important thing is truly knowing what you're doing**, understanding the "why" behind every decision, not just the "how."
+As mentioned in the challenge, AI has become a powerful tool in software development. I don't deny using AI to assist with this code challenge, but I believe **the most important thing is truly knowing what you're doing**, understanding the "why" behind every decision, not just the "how."
 
 This mindset shapes how I approached each problem:
 
